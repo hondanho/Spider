@@ -20,5 +20,10 @@ namespace DotnetCrawler.Pipeline
                 await _repository.CreateAsync(entity);
             }
         }
+
+        public async Task Run(TEntity entity)
+        {
+            await _repository.CreateAsync(entity);
+        }
     }
 }

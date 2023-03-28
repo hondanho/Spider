@@ -1,11 +1,4 @@
-﻿using DotnetCrawler.Data.Attributes;
-using DotnetCrawler.Data.Repository;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Text;
-
+﻿
 namespace DotnetCrawler.Data.Setting {
 
     public class BasicSetting {

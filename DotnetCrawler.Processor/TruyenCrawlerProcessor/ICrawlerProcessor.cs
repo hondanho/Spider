@@ -9,8 +9,9 @@ using System.Threading.Tasks;
 
 namespace DotnetCrawler.Processor
 {
-    public interface IPostCrawlerProcessor
+    public interface ICrawlerProcessor
     {
-        Task<PostDb> Process(HtmlDocument document);
+        Task<PostDb> PostProcess(HtmlDocument document);
+        Task<ChapDb> ChapProcess(HtmlDocument document);
     }
 }

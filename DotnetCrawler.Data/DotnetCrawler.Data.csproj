@@ -5,20 +5,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Migrations\**" />
     <Compile Remove="Models\Ebay\**" />
-    <EmbeddedResource Remove="Migrations\**" />
     <EmbeddedResource Remove="Models\Ebay\**" />
-    <None Remove="Migrations\**" />
     <None Remove="Models\Ebay\**" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="Migrations\20230328054408_init.cs" />
-    <Compile Include="Migrations\20230328054408_init.Designer.cs" />
-    <Compile Include="Migrations\20230328054653_update-column.cs" />
-    <Compile Include="Migrations\20230328054653_update-column.Designer.cs" />
-    <Compile Include="Migrations\CatalogDbContextModelSnapshot.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -23,6 +23,35 @@ namespace DotnetCrawler.Downloader
             _request = request;
         }
 
+        public async Task<IEnumerable<string>> GetLinks(HtmlDocument document, string cssSelectorLink, int level = 0)
+        {
+            if (level < 0)
+                throw new ArgumentOutOfRangeException(nameof(level));
+
+           var rootUrls = document.DocumentNode.QuerySelectorAll(cssSelectorLink)
+                                .Select(a =>
+                                {
+                                    string href = a.GetAttributeValue("href", null);
+                                    if (!IsValidURL(href))
+                                    {
+                                        return _request.CategorySetting.Domain + href;
+                                    }
+
+                                    return href;
+                                })
+                                .Where(u => !string.IsNullOrEmpty(u))
+                                .Distinct().ToList();
+
+            if (level == 0)
+                return rootUrls;
+
+            var links = await GetAllPagesLinks(rootUrls, cssSelectorLink);
+
+            --level;
+            var tasks = await Task.WhenAll(links.Select(link => GetLinks(link, cssSelectorLink, level)));
+            return tasks.SelectMany(l => l);
+        }
+
         public async Task<IEnumerable<string>> GetLinks(string url, string cssSelectorLink, int level = 0)
         {
             if (level < 0)
@@ -46,11 +75,13 @@ namespace DotnetCrawler.Downloader
             {
                 HtmlWeb web = new HtmlWeb();
                 var htmlDocument = await web.LoadFromWebAsync(url);
-               
+
                 var linkList = htmlDocument.DocumentNode.QuerySelectorAll(cssSelectorLink)
-                                .Select(a => {
+                                .Select(a =>
+                                {
                                     string href = a.GetAttributeValue("href", null);
-                                    if (!IsValidURL(href)) {
+                                    if (!IsValidURL(href))
+                                    {
                                         return _request.CategorySetting.Domain + href;
                                     }
 
@@ -73,7 +104,8 @@ namespace DotnetCrawler.Downloader
             return result.SelectMany(x => x).Distinct();
         }
 
-        bool IsValidURL(string URL) {
+        bool IsValidURL(string URL)
+        {
             string Pattern = @"^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$";
             Regex Rgx = new Regex(Pattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
             return Rgx.IsMatch(URL);

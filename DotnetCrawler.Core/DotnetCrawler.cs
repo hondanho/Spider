@@ -1,13 +1,14 @@
-﻿using DotnetCrawler.Data.AutoMap;
-using DotnetCrawler.Data.Models.Novel;
-using DotnetCrawler.Data.Repository;
-using DotnetCrawler.Data.Setting;
+﻿using DotnetCrawler.Data.Models.Novel;
 using DotnetCrawler.Downloader;
 using DotnetCrawler.Pipeline;
 using DotnetCrawler.Processor;
 using DotnetCrawler.Request;
 using DotnetCrawler.Scheduler;
+using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Security;
 using System.Threading.Tasks;
 
 namespace DotnetCrawler.Core
@@ -43,17 +44,36 @@ namespace DotnetCrawler.Core
 
         public async Task Crawle()
         {
+            // get list post
             var linkReader = new DotnetCrawlerPageLinkReader(Request);
-            var linkPostFromCategory = await linkReader.GetLinks(Request.CategorySetting.Url, Request.CategorySetting.LinkPostSelector, 0);
+            var linksPost = await linkReader.GetLinks(Request.CategorySetting.Url, Request.CategorySetting.LinkPostSelector);
 
-            foreach (var url in linkPostFromCategory)
+            foreach (var urlPost in linksPost)
             {
-                var documentPost = await Downloader.Download(url);
-                var postData = (new PostCrawlerProcessor(Request)).Process(documentPost);
+                // get info post
+                var htmlDocumentPost = await Downloader.Download(urlPost);
+                var postData = await (new CrawlerProcessor(Request).PostProcess(htmlDocumentPost));
+                await (new DotnetCrawlerPipeline<PostDb>().Run(postData));
+                Console.WriteLine(string.Format("Post: Id: {0}, Title: {1}", postData.Id, postData.Titlte));
 
-                Console.WriteLine(postData.ToString());
+                // get info chap
+                while(true)
+                {
+                    var linksChap = await linkReader.GetLinks(htmlDocumentPost, Request.PostSetting.LinkChapSelector);
+                    if (!linksChap.Any()) break;
+                    foreach (var urlChap in linksChap.Take(2))
+                    {
+                        if (string.IsNullOrEmpty(urlChap)) continue;
+                        var htmlDocumentChap = await Downloader.Download(urlChap);
+                        var chapData = await (new CrawlerProcessor(Request).ChapProcess(htmlDocumentChap));
+                        await (new DotnetCrawlerPipeline<ChapDb>().Run(chapData));
+                        Console.WriteLine(string.Format("Chap: Id: {0}, Title: {1}", chapData.Id, chapData.Titlte));
+                    }
 
-                //await (new DotnetCrawlerPipeline<PostDb>()).Run(dataPostDb);
+                    var urlPostChapNext = (await linkReader.GetLinks(htmlDocumentPost, Request.PostSetting.PagingSelector)).FirstOrDefault();
+                    if (string.IsNullOrEmpty(urlPostChapNext)) break;
+                    htmlDocumentPost = await Downloader.Download(urlPostChapNext);
+                }
             }
         }
     }

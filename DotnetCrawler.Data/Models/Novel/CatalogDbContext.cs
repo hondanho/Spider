@@ -1,7 +1,8 @@
-﻿using System;
-using DotnetCrawler.Data.Models.Novel;
+﻿using DotnetCrawler.Data.Models.Novel;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
+using System;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace DotnetCrawler.Data.Models
 {
@@ -26,13 +27,45 @@ namespace DotnetCrawler.Data.Models
         {
             if (!optionsBuilder.IsConfigured)
             {
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. See http://go.microsoft.com/fwlink/?LinkId=723263 for guidance on storing connection strings.
-                optionsBuilder.UseSqlServer("Server=localhost\\MSSQLSERVER01;Database=WP;Trusted_Connection=True;");
+                optionsBuilder.UseSqlServer("Server=DESKTOP-NT20HK6\\MSSQLSERVER01;Database=WP;Trusted_Connection=True;");
             }
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+        }
+
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default(CancellationToken))
+        {
+            UpdateTimestamps();
+            return await base.SaveChangesAsync(cancellationToken);
+        }
+
+        public override int SaveChanges()
+        {
+            UpdateTimestamps();
+            return base.SaveChanges();
+        }
+
+        private void UpdateTimestamps()
+        {
+            foreach (var entry in ChangeTracker.Entries())
+            {
+                if (entry.Entity is BaseEntity entity)
+                {
+                    var now = DateTime.UtcNow;
+
+                    if (entry.State == EntityState.Added)
+                    {
+                        entity.CreateDate = now;
+                        entity.UpdateDate = now;
+                    }
+                    else if (entry.State == EntityState.Modified)
+                    {
+                        entity.UpdateDate = now;
+                    }
+                }
+            }
         }
     }
 }

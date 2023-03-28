@@ -9,5 +9,6 @@ namespace DotnetCrawler.Pipeline
     public interface IDotnetCrawlerPipeline<TEntity> where TEntity : class, IEntity
     {
         Task Run(IEnumerable<TEntity> entity);
+        Task Run(TEntity entity);
     }
 }

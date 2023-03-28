@@ -11,30 +11,44 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DotnetCrawler.Sample {
-    class Program {
-        static void Main(string[] args) {
+namespace DotnetCrawler.Sample
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
             MainAsync(args).Wait();
         }
 
-        static async Task MainAsync(string[] args) {
+        static async Task MainAsync(string[] args)
+        {
             var crawler = new DotnetCrawler<CategorySetting>()
                                  .AddRequest(new DotnetCrawlerRequest(
-                                     new BasicSetting(),
-                                     new CategorySetting() {
+                                     new BasicSetting()
+                                     {
+                                         CheckDuplicateUrlPost = true,
+                                         CheckDuplicateTitlePost = true,
+                                         CheckDuplicateTitleChapter = true,
+                                         CheckDuplicateUrlChapter = true,
+                                         IsThuThap = true
+                                     },
+                                     new CategorySetting()
+                                     {
                                          Domain = "https://novelfull.com",
                                          Url = "https://novelfull.com/genre/Shounen",
                                          LinkPostSelector = @"#list-page .truyen-title a",
                                          PagingSelector = @"#list-page .truyen-title a",
                                          TimeOut = 5000
                                      },
-                                     new ChapSetting() {
+                                     new ChapSetting()
+                                     {
                                          Titlte = "#chapter .chapter-title .chapter-text",
                                          Content = "#chapter-content",
                                          Slug = ".chapter-text",
                                          RemoveElement = new List<string>() { "link", "script", "video", "iframe", "style" }
                                      },
-                                      new PostSetting() {
+                                      new PostSetting()
+                                      {
                                           Titlte = "#truyen .col-info-desc .desc:first-child .title",
                                           Description = "#truyen .desc-text",
                                           Metadata = new Dictionary<string, string>() {
@@ -55,7 +69,8 @@ namespace DotnetCrawler.Sample {
                                       }
                                     )
                                  )
-                                 .AddDownloader(new DotnetCrawlerDownloader {
+                                 .AddDownloader(new DotnetCrawlerDownloader
+                                 {
                                      DownloderType = DotnetCrawlerDownloaderType.FromMemory,
                                      DownloadPath = @"C:\DotnetCrawlercrawler\"
                                  });

@@ -1,19 +1,16 @@
-﻿using DotnetCrawler.Data.Attributes;
-using DotnetCrawler.Data.Repository;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Text;
 
 namespace DotnetCrawler.Data.Setting {
 
     public class PostSetting : BaseSetting {
+        [Required]
         /// <summary>
         /// string xpath title
         /// </summary>
         public string Titlte { get; set; }
 
+        [Required]
         /// <summary>
         /// string xpth description
         /// </summary>
@@ -32,7 +29,7 @@ namespace DotnetCrawler.Data.Setting {
         /// <summary>
         /// bài viết con
         /// </summary>
-        public bool IsHasChapter { get; set; }
+        public bool IsHasChapter { get; set; } = false;
 
         /// <summary>
         /// repace text: domain,.. -> domain của mình
@@ -40,14 +37,27 @@ namespace DotnetCrawler.Data.Setting {
         public Dictionary<string, string> StringReplace { get; set; }
 
         /// <summary>
-        /// key,xpath ví dụ: tac-gia,
+        /// key,xpath ví dụ: tac-gia,.col-truyen-main .info-holder div:first-child > a
+        /// category,.col-truyen-main .info div:nth-child(3) a
         /// </summary>
-        public Dictionary<string, string> Taxonomies { get; set; } // như tac-gia, category // xpath string
-        public Dictionary<string, string> Metadata { get; set; } // như tw_status // xpath string
-        public List<string> RemoveElement { get; set; } // remove element như script, link, iframe, video
+        public Dictionary<string, string> Taxonomies { get; set; }
+        /// <summary>
+        /// key, xpath example tw_status, .col-truyen-main .info div:last-child a
+        /// </summary>
+        public Dictionary<string, string> Metadata { get; set; }
+        /// <summary>
+        ///  remove element như script, link, iframe, video
+        /// </summary>
+        public List<string> RemoveElement { get; set; }
 
-        public string LinkChapSelector { get; set; } // xpath string
-        public string PagingSelector { get; set; } // xpath string
+        /// <summary>
+        /// Xác định phần tử HTML của URL trang tiếp theo, Mặc định sẽ lấy thuộc tính "href" của thẻ "a". Ví dụ: .pagination > a.next. Nếu bạn khai báo nhiều bộ lọc, phát hiện đầu tiên sẽ được sử dụng.	
+        /// </summary>
+        public string LinkChapSelector { get; set; }
+        /// <summary>
+        /// Xác định phần tử HTML của mỗi URL trang tiếp theo, Ví dụ: .post > .parts > a. Nếu bạn khai báo nhiều bộ lọc, phát hiện đầu tiên sẽ được sử dụng.
+        /// </summary>
+        public string PagingSelector { get; set; }
 
     }
 }
