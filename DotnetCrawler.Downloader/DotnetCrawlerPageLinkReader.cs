@@ -1,5 +1,6 @@
 ﻿using DotnetCrawler.Request;
 using HtmlAgilityPack;
+using HtmlAgilityPack.CssSelectors.NetCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,50 +17,47 @@ namespace DotnetCrawler.Downloader
     public class DotnetCrawlerPageLinkReader
     {
         private readonly IDotnetCrawlerRequest _request;
-        private readonly Regex _regex;
 
         public DotnetCrawlerPageLinkReader(IDotnetCrawlerRequest request)
         {
             _request = request;
-            if (!string.IsNullOrWhiteSpace(request.Regex))
-            {
-                _regex = new Regex(request.Regex);
-            }
         }
 
-        public async Task<IEnumerable<string>> GetLinks(string url, int level = 0)
+        public async Task<IEnumerable<string>> GetLinks(string url, string cssSelectorLink, int level = 0)
         {
             if (level < 0)
                 throw new ArgumentOutOfRangeException(nameof(level));
 
-            var rootUrls = await GetPageLinks(url, false);
+            var rootUrls = await GetPageLinks(url, cssSelectorLink, false);
 
             if (level == 0)
                 return rootUrls;
 
-            var links = await GetAllPagesLinks(rootUrls);
+            var links = await GetAllPagesLinks(rootUrls, cssSelectorLink);
 
             --level;
-            var tasks = await Task.WhenAll(links.Select(link => GetLinks(link, level)));
+            var tasks = await Task.WhenAll(links.Select(link => GetLinks(link, cssSelectorLink, level)));
             return tasks.SelectMany(l => l);
         }
 
-        private async Task<IEnumerable<string>> GetPageLinks(string url, bool needMatch = true)
+        private async Task<IEnumerable<string>> GetPageLinks(string url, string cssSelectorLink, bool needMatch = true)
         {
             try
             {
                 HtmlWeb web = new HtmlWeb();
                 var htmlDocument = await web.LoadFromWebAsync(url);
+               
+                var linkList = htmlDocument.DocumentNode.QuerySelectorAll(cssSelectorLink)
+                                .Select(a => {
+                                    string href = a.GetAttributeValue("href", null);
+                                    if (!IsValidURL(href)) {
+                                        return _request.CategorySetting.Domain + href;
+                                    }
 
-                var linkList = htmlDocument.DocumentNode
-                                   .Descendants("a")
-                                   .Select(a => a.GetAttributeValue("href", null))
-                                   .Where(u => !string.IsNullOrEmpty(u))
-                                   .Distinct();
-
-                if (_regex != null)
-                    linkList = linkList.Where(x => _regex.IsMatch(x));
-
+                                    return href;
+                                })
+                                .Where(u => !string.IsNullOrEmpty(u))
+                                .Distinct().ToList();
                 return linkList;
             }
             catch (Exception exception)
@@ -68,11 +66,17 @@ namespace DotnetCrawler.Downloader
             }
         }
 
-        private async Task<IEnumerable<string>> GetAllPagesLinks(IEnumerable<string> rootUrls)
+        private async Task<IEnumerable<string>> GetAllPagesLinks(IEnumerable<string> rootUrls, string cssSelectorLink)
         {
-            var result = await Task.WhenAll(rootUrls.Select(url => GetPageLinks(url)));
+            var result = await Task.WhenAll(rootUrls.Select(url => GetPageLinks(url, cssSelectorLink)));
 
             return result.SelectMany(x => x).Distinct();
+        }
+
+        bool IsValidURL(string URL) {
+            string Pattern = @"^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$";
+            Regex Rgx = new Regex(Pattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            return Rgx.IsMatch(URL);
         }
     }
 }

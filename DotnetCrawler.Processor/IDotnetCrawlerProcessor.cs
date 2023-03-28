@@ -7,8 +7,8 @@ using System.Threading.Tasks;
 
 namespace DotnetCrawler.Processor
 {
-    public interface IDotnetCrawlerProcessor<TEntity> where TEntity : class, IEntity
+    public interface IDotnetCrawlerProcessor<T> where T : class
     {
-        Task<IEnumerable<TEntity>> Process(HtmlDocument document);
+        Task<IEnumerable<T>> Process(HtmlDocument document);
     }
 }

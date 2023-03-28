@@ -1,66 +1,59 @@
-﻿using DotnetCrawler.Data.Repository;
+﻿using DotnetCrawler.Data.AutoMap;
+using DotnetCrawler.Data.Models.Novel;
+using DotnetCrawler.Data.Repository;
+using DotnetCrawler.Data.Setting;
 using DotnetCrawler.Downloader;
 using DotnetCrawler.Pipeline;
 using DotnetCrawler.Processor;
 using DotnetCrawler.Request;
 using DotnetCrawler.Scheduler;
+using System;
 using System.Threading.Tasks;
 
 namespace DotnetCrawler.Core
 {
-    public class DotnetCrawler<TEntity> : IDotnetCrawler where TEntity : class, IEntity
+    public class DotnetCrawler<T> : IDotnetCrawler where T : class
     {
         public IDotnetCrawlerRequest Request { get; private set; }
         public IDotnetCrawlerDownloader Downloader { get; private set; }
-        public IDotnetCrawlerProcessor<TEntity> Processor { get; private set; }
         public IDotnetCrawlerScheduler Scheduler { get; private set; }
-        public IDotnetCrawlerPipeline<TEntity> Pipeline { get; private set; }
 
         public DotnetCrawler()
         {
 
         }
 
-        public DotnetCrawler<TEntity> AddRequest(IDotnetCrawlerRequest request)
+        public DotnetCrawler<T> AddRequest(IDotnetCrawlerRequest request)
         {
             Request = request;
             return this;
         }
 
-        public DotnetCrawler<TEntity> AddDownloader(IDotnetCrawlerDownloader downloader)
+        public DotnetCrawler<T> AddDownloader(IDotnetCrawlerDownloader downloader)
         {
             Downloader = downloader;
             return this;
         }
 
-        public DotnetCrawler<TEntity> AddProcessor(IDotnetCrawlerProcessor<TEntity> processor)
-        {
-            Processor = processor;
-            return this;
-        }
-
-        public DotnetCrawler<TEntity> AddScheduler(IDotnetCrawlerScheduler scheduler)
+        public DotnetCrawler<T> AddScheduler(IDotnetCrawlerScheduler scheduler)
         {
             Scheduler = scheduler;
-            return this;
-        }
-
-        public DotnetCrawler<TEntity> AddPipeline(IDotnetCrawlerPipeline<TEntity> pipeline)
-        {
-            Pipeline = pipeline;
             return this;
         }
 
         public async Task Crawle()
         {
             var linkReader = new DotnetCrawlerPageLinkReader(Request);
-            var links = await linkReader.GetLinks(Request.Url, 0);
+            var linkPostFromCategory = await linkReader.GetLinks(Request.CategorySetting.Url, Request.CategorySetting.LinkPostSelector, 0);
 
-            foreach (var url in links)
+            foreach (var url in linkPostFromCategory)
             {
-                var document = await Downloader.Download(url);
-                var entity = await Processor.Process(document);
-                await Pipeline.Run(entity);
+                var documentPost = await Downloader.Download(url);
+                var postData = (new PostCrawlerProcessor(Request)).Process(documentPost);
+
+                Console.WriteLine(postData.ToString());
+
+                //await (new DotnetCrawlerPipeline<PostDb>()).Run(dataPostDb);
             }
         }
     }

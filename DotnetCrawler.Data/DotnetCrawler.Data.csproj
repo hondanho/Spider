@@ -1,10 +1,28 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Migrations\**" />
+    <Compile Remove="Models\Ebay\**" />
+    <EmbeddedResource Remove="Migrations\**" />
+    <EmbeddedResource Remove="Models\Ebay\**" />
+    <None Remove="Migrations\**" />
+    <None Remove="Models\Ebay\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Migrations\20230328054408_init.cs" />
+    <Compile Include="Migrations\20230328054408_init.Designer.cs" />
+    <Compile Include="Migrations\20230328054653_update-column.cs" />
+    <Compile Include="Migrations\20230328054653_update-column.Designer.cs" />
+    <Compile Include="Migrations\CatalogDbContextModelSnapshot.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="12.0.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="2.2.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="2.2.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="2.2.2" />

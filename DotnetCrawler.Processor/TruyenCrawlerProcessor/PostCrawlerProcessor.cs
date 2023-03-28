@@ -1,5 +1,9 @@
 ﻿using DotnetCrawler.Data.Attributes;
+using DotnetCrawler.Data.AutoMap;
+using DotnetCrawler.Data.Models.Novel;
 using DotnetCrawler.Data.Repository;
+using DotnetCrawler.Data.Setting;
+using DotnetCrawler.Request;
 using HtmlAgilityPack;
 using HtmlAgilityPack.CssSelectors.NetCore;
 using System;
@@ -9,29 +13,27 @@ using System.Threading.Tasks;
 
 namespace DotnetCrawler.Processor
 {
-    public class DotnetCrawlerProcessor<T> : IDotnetCrawlerProcessor<T> where T : class
+    public class PostCrawlerProcessor : IPostCrawlerProcessor
     {
-        public async Task<IEnumerable<T>> Process(HtmlDocument document)
-        {
-            var nameValueDictionary = GetColumnNameValuePairsFromHtml(document);
+        private readonly IDotnetCrawlerRequest _request;
 
-            var processorEntity = ReflectionHelper.CreateNewEntity<T>();
-            foreach (var pair in nameValueDictionary)
-            {
-                ReflectionHelper.TrySetProperty(processorEntity, pair.Key, pair.Value);
-            }
-
-            return new List<T>
-            {
-                processorEntity as T
-            };
+        public PostCrawlerProcessor(IDotnetCrawlerRequest request) {
+            _request = request;
         }
 
-        private static Dictionary<string, object> GetColumnNameValuePairsFromHtml(HtmlDocument document)
+        public async Task<PostDb> Process(HtmlDocument document)
         {
-            var columnNameValueDictionary = new Dictionary<string, object>();
-            var propertyExpressions = ReflectionHelper.GetPropertyAttributes<T>();
+            var processorEntity = GetColumnNameValuePairsFromHtml(document);
 
+            //Initializing AutoMapper
+            //var mapper = AutoMapperHelper.InitializeAutomapper();
+            //var processorEntity = mapper.Map<PostSetting, PostDb>(postData);
+            return processorEntity;
+        }
+
+        private static PostDb GetColumnNameValuePairsFromHtml(HtmlDocument document)
+        {
+            var entity = new PostDb();
             var entityNode = document.DocumentNode;
 
             foreach (var expression in propertyExpressions)
