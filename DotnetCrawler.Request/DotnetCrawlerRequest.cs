@@ -12,7 +12,7 @@ namespace DotnetCrawler.Request
         public ChapSetting ChapSetting { get; set; }
         public PostSetting PostSetting { get; set; }
 
-        public DotnetCrawlerRequest(BasicSetting basicSetting, CategorySetting categorySetting, ChapSetting chapSetting, PostSetting postSetting) {
+        public DotnetCrawlerRequest(BasicSetting basicSetting, CategorySetting categorySetting, PostSetting postSetting, ChapSetting chapSetting) {
             BasicSetting = basicSetting;
             CategorySetting = categorySetting;
             ChapSetting = chapSetting;

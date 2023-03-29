@@ -1,4 +1,5 @@
-﻿using HtmlAgilityPack;
+﻿using DotnetCrawler.Core.Extension;
+using HtmlAgilityPack;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,6 +14,8 @@ namespace DotnetCrawler.Downloader
         public DotnetCrawlerDownloaderType DownloderType { get; set; }
         public string DownloadPath { get; set; }
         private string _localFilePath;
+        public List<string> Proxys { get; set; }
+        private WebProxy _webProxy;
 
         public DotnetCrawlerDownloader()
         {
@@ -33,11 +36,14 @@ namespace DotnetCrawler.Downloader
 
         private async Task<HtmlDocument> DownloadInternal(string crawlUrl)
         {
+            _webProxy = Helper.GetRandomProxyLiveOrDefault(Proxys);
+
             switch (DownloderType)
             {
                 case DotnetCrawlerDownloaderType.FromFile:
                     using (WebClient client = new WebClient())
                     {
+                    client.Proxy = _webProxy;
                         await client.DownloadFileTaskAsync(crawlUrl, _localFilePath);
                     }
                     return GetExistingFile(_localFilePath);
@@ -46,6 +52,7 @@ namespace DotnetCrawler.Downloader
                     var htmlDocument = new HtmlDocument();
                     using (WebClient client = new WebClient())
                     {
+                        client.Proxy = _webProxy;
                         string htmlCode = await client.DownloadStringTaskAsync(crawlUrl);
                         htmlDocument.LoadHtml(htmlCode);
                     }

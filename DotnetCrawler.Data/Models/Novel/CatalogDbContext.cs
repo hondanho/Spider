@@ -27,7 +27,7 @@ namespace DotnetCrawler.Data.Models
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer("Server=DESKTOP-NT20HK6\\MSSQLSERVER01;Database=WP;Trusted_Connection=True;");
+                optionsBuilder.UseSqlServer("Server=DESKTOP-07KVT1P\\MSSQLSERVER01;Database=WP;Trusted_Connection=True;");
             }
         }
 

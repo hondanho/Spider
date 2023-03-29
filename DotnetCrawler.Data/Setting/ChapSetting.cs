@@ -13,7 +13,16 @@ namespace DotnetCrawler.Data.Setting {
         [Required]
         public string Content { get; set; }
         public string Slug { get; set; }
+
+        /// <summary>
+        /// remove element như script, link, iframe, video trên Contentm slug, title
+        /// </summary>
         public List<string> RemoveElement { get; set; } // remove element như script, link, iframe, video
+
+        /// <summary>
+        ///  remove element by css selector
+        /// </summary>
+        public List<string> RemoveElementCssSelector { get; set; }
 
         public string PagingSelector { get; set; }
     }

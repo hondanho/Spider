@@ -32,9 +32,9 @@ namespace DotnetCrawler.Data.Setting {
         public bool IsHasChapter { get; set; } = false;
 
         /// <summary>
-        /// repace text: domain,.. -> domain của mình
+        ///  remove element by css selector
         /// </summary>
-        public Dictionary<string, string> StringReplace { get; set; }
+        public List<string> RemoveElementCssSelector { get; set; }
 
         /// <summary>
         /// key,xpath ví dụ: tac-gia,.col-truyen-main .info-holder div:first-child > a
@@ -48,7 +48,7 @@ namespace DotnetCrawler.Data.Setting {
         /// <summary>
         ///  remove element như script, link, iframe, video
         /// </summary>
-        public List<string> RemoveElement { get; set; }
+        public List<string> RemoveNodeElement { get; set; }
 
         /// <summary>
         /// Xác định phần tử HTML của URL trang tiếp theo, Mặc định sẽ lấy thuộc tính "href" của thẻ "a". Ví dụ: .pagination > a.next. Nếu bạn khai báo nhiều bộ lọc, phát hiện đầu tiên sẽ được sử dụng.	
