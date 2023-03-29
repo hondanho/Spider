@@ -14,7 +14,7 @@
     <ProjectReference Include="..\DotnetCrawler.Pipeline\DotnetCrawler.Pipeline.csproj" />
     <ProjectReference Include="..\DotnetCrawler.Processor\DotnetCrawler.Processor.csproj" />
     <ProjectReference Include="..\DotnetCrawler.Request\DotnetCrawler.Request.csproj" />
-    <ProjectReference Include="..\DotnetCrawler.Scheduler\DotnetCrawler.Scheduler.csproj" />
+    <ProjectReference Include="..\DotnetCrawler.Scheduler\DotnetCrawler.Schedulerf.csproj" />
   </ItemGroup>
 
 </Project>
