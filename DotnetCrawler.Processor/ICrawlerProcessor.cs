@@ -1,4 +1,4 @@
-﻿using DotnetCrawler.Data.Models.Novel;
+﻿using DotnetCrawler.Data.Models;
 using DotnetCrawler.Data.Repository;
 using DotnetCrawler.Data.Setting;
 using HtmlAgilityPack;

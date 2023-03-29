@@ -1,10 +1,8 @@
 ﻿using DotnetCrawler.Data.Attributes;
-using DotnetCrawler.Data.Repository;
 using HtmlAgilityPack;
 using HtmlAgilityPack.CssSelectors.NetCore;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace DotnetCrawler.Processor

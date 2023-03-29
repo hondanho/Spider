@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace DotnetCrawler.Downloader
@@ -19,7 +18,6 @@ namespace DotnetCrawler.Downloader
 
         public DotnetCrawlerDownloader()
         {
-
         }
 
         public async Task<HtmlDocument> Download(string crawlUrl)

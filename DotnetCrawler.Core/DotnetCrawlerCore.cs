@@ -1,78 +1,92 @@
-﻿using DotnetCrawler.Data.Models.Novel;
+﻿using DotnetCrawler.Data.Models;
+using DotnetCrawler.Data.Repository;
 using DotnetCrawler.Downloader;
 using DotnetCrawler.Pipeline;
 using DotnetCrawler.Processor;
 using DotnetCrawler.Request;
-using DotnetCrawler.Scheduler;
-using Newtonsoft.Json;
+using Microsoft.Extensions.DependencyInjection;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Security;
 using System.Threading.Tasks;
 
-namespace DotnetCrawler.Core {
-    public class DotnetCrawler<T> : IDotnetCrawler where T : class {
+namespace DotnetCrawler.Core
+{
+    public class DotnetCrawlerCore<T> : IDotnetCrawlerCore<T> where T : class
+    {
+        public ServiceCollection _services = new ServiceCollection();
         public IDotnetCrawlerRequest Request { get; private set; }
         public IDotnetCrawlerDownloader Downloader { get; private set; }
         public IDotnetCrawlerScheduler Scheduler { get; private set; }
-
-        public DotnetCrawler() {
-
+        private readonly IMongoRepository<PostDb> _postDbRepository;
+        private readonly IMongoRepository<ChapDb> _chapDbRepository;
+        public DotnetCrawlerCore()
+        {
+            _services.AddMongoRepository();
+            var provider = _services.BuildServiceProvider();
+            _postDbRepository = provider.GetService<IMongoRepository<PostDb>>();
+            _chapDbRepository = provider.GetService<IMongoRepository<ChapDb>>();
         }
 
-        public DotnetCrawler<T> AddRequest(IDotnetCrawlerRequest request) {
+        public DotnetCrawlerCore<T> AddRequest(IDotnetCrawlerRequest request)
+        {
             Request = request;
             return this;
         }
 
-        public DotnetCrawler<T> AddDownloader(IDotnetCrawlerDownloader downloader) {
+        public DotnetCrawlerCore<T> AddDownloader(IDotnetCrawlerDownloader downloader)
+        {
             Downloader = downloader;
             return this;
         }
 
-        public DotnetCrawler<T> AddScheduler(IDotnetCrawlerScheduler scheduler) {
+        public DotnetCrawlerCore<T> AddScheduler(IDotnetCrawlerScheduler scheduler)
+        {
             Scheduler = scheduler;
             return this;
         }
 
-        public async Task Crawle() {
+        public async Task Crawle()
+        {
             // get list post
             var linkReader = new DotnetCrawlerPageLinkReader(Request);
             var htmlDocumentCategory = await Downloader.Download(Request.CategorySetting.Url);
 
-            while(true) {
+            while (true)
+            {
                 var linksPost = await linkReader.GetLinks(htmlDocumentCategory, Request.CategorySetting.LinkPostSelector);
-                if(!linksPost.Any())
+                if (!linksPost.Any())
                     break;
 
-                foreach(var urlPost in linksPost.Take(2)) { ///fake
-                    if(string.IsNullOrEmpty(urlPost))
+                foreach (var urlPost in linksPost.Take(2))
+                { ///fake
+                    if (string.IsNullOrEmpty(urlPost))
                         continue;
 
                     // get info post
                     var htmlDocumentPost = await Downloader.Download(urlPost);
                     var postData = await (new CrawlerProcessor(Request).PostProcess(htmlDocumentPost));
-                    await (new DotnetCrawlerPipeline<PostDb>().Run(postData));
+                    await _postDbRepository.InsertOneAsync(postData);
                     Console.WriteLine(string.Format("Post: Id: {0}, Title: {1}", postData.Id, postData.Titlte));
 
                     // get info chap
-                    while(true) {
+                    while (true)
+                    {
                         var linksChap = await linkReader.GetLinks(htmlDocumentPost, Request.PostSetting.LinkChapSelector);
-                        if(!linksChap.Any())
+                        if (!linksChap.Any())
                             break;
 
-                        foreach(var urlChap in linksChap.Take(2)) { ///fake
-                            if(string.IsNullOrEmpty(urlChap))
+                        foreach (var urlChap in linksChap.Take(2))
+                        { ///fake
+                            if (string.IsNullOrEmpty(urlChap))
                                 continue;
                             var htmlDocumentChap = await Downloader.Download(urlChap);
                             var chapData = await (new CrawlerProcessor(Request).ChapProcess(htmlDocumentChap));
-                            await (new DotnetCrawlerPipeline<ChapDb>().Run(chapData));
+                            await _chapDbRepository.InsertOneAsync(chapData);
                             Console.WriteLine(string.Format("Chap: Id: {0}, Title: {1}", chapData.Id, chapData.Titlte));
                         }
 
                         var urlPostChapNext = (await linkReader.GetLinks(htmlDocumentPost, Request.PostSetting.PagingSelector)).FirstOrDefault();
-                        if(string.IsNullOrEmpty(urlPostChapNext))
+                        if (string.IsNullOrEmpty(urlPostChapNext))
                             break;
                         htmlDocumentPost = await Downloader.Download(urlPostChapNext);
                         break; ///fake
@@ -80,7 +94,7 @@ namespace DotnetCrawler.Core {
                 }
 
                 var urlCategoryPostNext = (await linkReader.GetLinks(htmlDocumentCategory, Request.CategorySetting.PagingSelector)).FirstOrDefault();
-                if(string.IsNullOrEmpty(urlCategoryPostNext))
+                if (string.IsNullOrEmpty(urlCategoryPostNext))
                     break;
                 htmlDocumentCategory = await Downloader.Download(urlCategoryPostNext);
             }

@@ -1,4 +1,4 @@
-﻿using DotnetCrawler.Data.Models.Novel;
+﻿using DotnetCrawler.Data.Models;
 using DotnetCrawler.Request;
 using HtmlAgilityPack;
 using HtmlAgilityPack.CssSelectors.NetCore;

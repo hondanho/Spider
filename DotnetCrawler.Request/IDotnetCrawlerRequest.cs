@@ -1,7 +1,4 @@
 ﻿using DotnetCrawler.Data.Setting;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace DotnetCrawler.Request
 {

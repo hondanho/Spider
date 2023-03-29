@@ -5,13 +5,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Models\Ebay\**" />
-    <EmbeddedResource Remove="Models\Ebay\**" />
-    <None Remove="Models\Ebay\**" />
+    <Compile Remove="ModelDb\Ebay\**" />
+    <EmbeddedResource Remove="ModelDb\Ebay\**" />
+    <None Remove="ModelDb\Ebay\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AutoMapper" Version="12.0.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="2.2.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="2.2.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="2.2.2" />
@@ -19,6 +18,8 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="MongoDB.Driver" Version="2.19.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
   </ItemGroup>
 
 </Project>

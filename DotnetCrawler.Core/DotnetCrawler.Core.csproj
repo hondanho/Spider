@@ -5,16 +5,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AutoMapper" Version="12.0.1" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\DotnetCrawler.Data\DotnetCrawler.Data.csproj" />
     <ProjectReference Include="..\DotnetCrawler.Downloader\DotnetCrawler.Downloader.csproj" />
-    <ProjectReference Include="..\DotnetCrawler.Pipeline\DotnetCrawler.Pipeline.csproj" />
+    <ProjectReference Include="..\DotnetCrawler.Pipeline\DotnetCrawler.Scheduler.csproj" />
     <ProjectReference Include="..\DotnetCrawler.Processor\DotnetCrawler.Processor.csproj" />
     <ProjectReference Include="..\DotnetCrawler.Request\DotnetCrawler.Request.csproj" />
-    <ProjectReference Include="..\DotnetCrawler.Scheduler\DotnetCrawler.Schedulerf.csproj" />
   </ItemGroup>
 
 </Project>
