@@ -3,7 +3,7 @@
 namespace DotnetCrawler.Data.Models
 {
 
-    [BsonCollection("CategoryDb")]
+    [BsonCollection("category")]
     public class CategoryDb : Document
     {
         public string Domain { get; set; }

@@ -13,18 +13,16 @@ namespace DotnetCrawler.Core
 {
     public class DotnetCrawlerCore<T> : IDotnetCrawlerCore<T> where T : class
     {
-        public ServiceCollection _services = new ServiceCollection();
         public IDotnetCrawlerRequest Request { get; private set; }
         public IDotnetCrawlerDownloader Downloader { get; private set; }
         public IDotnetCrawlerScheduler Scheduler { get; private set; }
         private readonly IMongoRepository<PostDb> _postDbRepository;
         private readonly IMongoRepository<ChapDb> _chapDbRepository;
-        public DotnetCrawlerCore()
+
+        public DotnetCrawlerCore(IMongoRepository<PostDb> postDbRepository, IMongoRepository<ChapDb> chapDbRepository)
         {
-            _services.AddMongoRepository();
-            var provider = _services.BuildServiceProvider();
-            _postDbRepository = provider.GetService<IMongoRepository<PostDb>>();
-            _chapDbRepository = provider.GetService<IMongoRepository<ChapDb>>();
+            _postDbRepository = postDbRepository;
+            _chapDbRepository = chapDbRepository;
         }
 
         public DotnetCrawlerCore<T> AddRequest(IDotnetCrawlerRequest request)
@@ -45,12 +43,10 @@ namespace DotnetCrawler.Core
             return this;
         }
 
-        public async Task Crawle()
-        {
+        public async Task Crawle() {
             // get list post
             var linkReader = new DotnetCrawlerPageLinkReader(Request);
             var htmlDocumentCategory = await Downloader.Download(Request.CategorySetting.Url);
-
             while (true)
             {
                 var linksPost = await linkReader.GetLinks(htmlDocumentCategory, Request.CategorySetting.LinkPostSelector);

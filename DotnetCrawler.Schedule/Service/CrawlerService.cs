@@ -12,12 +12,16 @@ namespace DotnetCrawler.Api.Service
 {
     public class CrawlerService : ICrawlerService
     {
-        public CrawlerService() {}
+        private readonly IDotnetCrawlerCore<CategorySetting> _dotnetCrawlerCore;
+
+        public CrawlerService(IDotnetCrawlerCore<CategorySetting> dotnetCrawlerCore) {
+            _dotnetCrawlerCore = dotnetCrawlerCore;
+        }
 
         public async Task Crawler()
         {
-            var crawler = new DotnetCrawlerCore<CategorySetting>()
-                .AddRequest(new DotnetCrawlerRequest(
+            var crawler =
+                _dotnetCrawlerCore.AddRequest(new DotnetCrawlerRequest(
                     new BasicSetting()
                     {
                         CheckDuplicateUrlPost = true,
@@ -25,7 +29,8 @@ namespace DotnetCrawler.Api.Service
                         CheckDuplicateTitleChapter = true,
                         CheckDuplicateUrlChapter = true,
                         IsThuThap = true,
-                        IsThuThapLai = true
+                        IsThuThapLai = true,
+                        Document = "novel"
                     },
                     new CategorySetting()
                     {

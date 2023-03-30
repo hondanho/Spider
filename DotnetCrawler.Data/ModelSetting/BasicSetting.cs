@@ -8,5 +8,6 @@ namespace DotnetCrawler.Data.Setting {
         public bool CheckDuplicateTitleChapter { get; set; }
         public bool IsThuThap { get; set; }
         public bool IsThuThapLai { get; set; }
+        public string Document { get; set; }
     }
 }

@@ -3,7 +3,7 @@
 namespace DotnetCrawler.Data.Models
 {
 
-    [BsonCollection("PostDb")]
+    [BsonCollection("post")]
     public class PostDb : Document
     {
         public string Titlte { get; set; }

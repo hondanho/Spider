@@ -3,7 +3,7 @@
 namespace DotnetCrawler.Data.Models
 {
 
-    [BsonCollection("ChapDb")]
+    [BsonCollection("chap")]
     public class ChapDb : Document
     {
         public string Titlte { get; set; }

@@ -14,6 +14,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using MongoDB.Driver;
 using DotnetCrawler.Core;
+using System;
 
 namespace DotnetCrawler.Api
 {
@@ -34,6 +35,7 @@ namespace DotnetCrawler.Api
                         Configuration.GetValue<string>("MongoDbSettings:HangfireDb")
                     )
                 );
+            
             var mongoClient = new MongoClient(mongoUrlBuilder.ToMongoUrl());
             // Add Hangfire services. Hangfire.AspNetCore nuget required
             services.AddHangfire(configuration => configuration
@@ -42,13 +44,13 @@ namespace DotnetCrawler.Api
                 .UseRecommendedSerializerSettings()
                 .UseMongoStorage(mongoClient, mongoUrlBuilder.DatabaseName, new MongoStorageOptions
                 {
-                    MigrationOptions = new MongoMigrationOptions
-                    {
-                        MigrationStrategy = new MigrateMongoMigrationStrategy(),
+                    MigrationOptions = new MongoMigrationOptions {
+                        MigrationStrategy = new DropMongoMigrationStrategy(),
                         BackupStrategy = new CollectionMongoBackupStrategy()
                     },
-                    Prefix = "hangfire.mongo",
-                    CheckConnection = true
+                    Prefix = "hangfire",
+                    CheckConnection = true,
+                    CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.TailNotificationsCollection
                 })
             );
             // Add the processing server as IHostedService

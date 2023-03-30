@@ -3,7 +3,7 @@
 namespace DotnetCrawler.Data.Models
 {
 
-    [BsonCollection("SettingDb")]
+    [BsonCollection("setting")]
     public class SettingDb : Document
     {
 
