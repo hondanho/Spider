@@ -1,13 +1,10 @@
 ﻿using DotnetCrawler.Api.Service;
 using DotnetCrawler.Data.ModelDb;
 using DotnetCrawler.Data.Repository;
-using DotnetCrawler.Data.Setting;
 using Hangfire;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace DotnetCrawler.Api.Controllers

@@ -1,7 +1,7 @@
 ﻿
 using DotnetCrawler.Data.ModelDb;
 using DotnetCrawler.Downloader;
-using DotnetCrawler.Pipeline;
+using DotnetCrawler.Scheduler;
 using System.Threading.Tasks;
 
 namespace DotnetCrawler.Core

@@ -1,5 +1,4 @@
 ﻿using DotnetCrawler.Data.ModelDb;
-using DotnetCrawler.Request;
 using System.Threading.Tasks;
 
 namespace DotnetCrawler.Api.Service

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 namespace DotnetCrawler.Data.Setting {
 
     public class BasicSetting {
+        public string Name { get; set; }
         public bool CheckDuplicateSlugPost { get; set; }
         public bool CheckDuplicateTitlePost { get; set; }
         public bool CheckDuplicateSlugChap { get; set; }

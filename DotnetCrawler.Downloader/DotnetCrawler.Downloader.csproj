@@ -10,8 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DotnetCrawler.Base\DotnetCrawler.Base.csproj" />
-    <ProjectReference Include="..\DotnetCrawler.Request\DotnetCrawler.Request.csproj" />
+    <ProjectReference Include="..\DotnetCrawler.Data\DotnetCrawler.Data.csproj" />
   </ItemGroup>
 
 </Project>

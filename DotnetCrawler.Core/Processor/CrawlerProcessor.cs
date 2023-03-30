@@ -1,4 +1,4 @@
-﻿using DotnetCrawler.Core.Extension;
+﻿using DotnetCrawler.Base.Extension;
 using DotnetCrawler.Data.ModelDb;
 using DotnetCrawler.Data.Models;
 using HtmlAgilityPack;

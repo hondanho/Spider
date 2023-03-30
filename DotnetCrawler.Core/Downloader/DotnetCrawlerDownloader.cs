@@ -1,4 +1,5 @@
-﻿using HtmlAgilityPack;
+﻿using DotnetCrawler.Base.Extension;
+using HtmlAgilityPack;
 using System;
 using System.Collections.Generic;
 using System.Linq;

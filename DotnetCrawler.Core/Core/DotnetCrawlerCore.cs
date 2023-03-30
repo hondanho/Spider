@@ -2,9 +2,8 @@
 using DotnetCrawler.Data.Models;
 using DotnetCrawler.Data.Repository;
 using DotnetCrawler.Downloader;
-using DotnetCrawler.Pipeline;
 using DotnetCrawler.Processor;
-using DotnetCrawler.Request;
+using DotnetCrawler.Scheduler;
 using System;
 using System.Linq;
 using System.Linq.Expressions;
@@ -58,9 +57,9 @@ namespace DotnetCrawler.Core {
                     Titlte = Request.CategorySetting.Titlte
                 };
                 await _categoryDbRepository.InsertOneAsync(category);
-                Console.WriteLine(string.Format("Category new: Id: {0}, Title: {1}", category.IdString, category.Titlte));
+                Console.WriteLine(string.Format("Category new: Slug: {0}, Title: {1}", category.Slug, category.Titlte));
             } else {
-                Console.WriteLine(string.Format("Category existed: Id: {0}, Title: {1}", category.IdString, category.Titlte));
+                Console.WriteLine(string.Format("Category existed: Slug: {0}, Title: {1}", category.Slug, category.Titlte));
             }
 
             // get list chap
@@ -81,11 +80,13 @@ namespace DotnetCrawler.Core {
                     var post = await (new CrawlerProcessor(Request).PostProcess(category.IdString, urlPost, htmlDocumentPost));
 
                     // check post duplicate
-                    if(IsDuplicatePost(Request, category.IdString, post)) {
-                        Console.WriteLine(string.Format("Post existed: Id: {0}, Title: {1}", post.IdString, post.Titlte));
+                    var postIdString = string.Empty;
+                    if(IsDuplicatePost(Request, category.IdString, post, idString: ref postIdString)) {
+                        post.IdString = postIdString;
+                        Console.WriteLine(string.Format("Post existed: Id: {0}, Title: {1}, Slug: {2}", post.IdString, post.Titlte, post.Slug));
                     } else {
                         await _postDbRepository.InsertOneAsync(post);
-                        Console.WriteLine(string.Format("Post new: Id: {0}, Title: {1}", post.IdString, post.Titlte));
+                        Console.WriteLine(string.Format("Post new: Id: {0}, Title: {1}, Slug: {2}", post.IdString, post.Titlte, post.Slug));
                     }
 
                     if(Request.PostSetting.IsHasChapter) {
@@ -103,11 +104,11 @@ namespace DotnetCrawler.Core {
                                 var chap = await (new CrawlerProcessor(Request).ChapProcess(post.IdString, urlChap, htmlDocumentChap));
 
                                 // check chap duplicate
-                                if(IsDuplicateChap(Request, chap.IdString, chap)) {
-                                    Console.WriteLine(string.Format("Chap existed: Id: {0}, Title: {1}", chap.IdString, chap.Titlte));
+                                if(IsDuplicateChap(Request, post.IdString, chap)) {
+                                    Console.WriteLine(string.Format("Chap existed: Title: {0}, Slug: {1}", chap.Titlte, chap.Slug));
                                 } else {
                                     await _chapDbRepository.InsertOneAsync(chap);
-                                    Console.WriteLine(string.Format("Chap new: Id: {0}, Title: {1}", chap.IdString, chap.Titlte));
+                                    Console.WriteLine(string.Format("Chap new: Title: {0}, Slug: {1}", chap.Titlte, chap.Slug));
                                 }
                             }
 
@@ -128,12 +129,13 @@ namespace DotnetCrawler.Core {
             }
         }
 
-        private bool IsDuplicatePost(SiteConfigDb request, string categoryId, PostDb post) {
+        private bool IsDuplicatePost(SiteConfigDb request, string categoryId, PostDb post, ref string idString) {
             if(request.BasicSetting.CheckDuplicateTitlePost || request.BasicSetting.CheckDuplicateSlugPost) {
                 Expression<Func<PostDb, bool>> condition = pdb => pdb.CategoryId == categoryId &&
                                         (request.BasicSetting.CheckDuplicateSlugPost ? pdb.Slug == post.Slug : true) &&
                                         (request.BasicSetting.CheckDuplicateTitlePost ? pdb.Titlte == post.Titlte : true);
                 var postDuplicate = _postDbRepository.FindOne(condition);
+                idString = postDuplicate?.IdString;
                 return postDuplicate != null;
             }
 

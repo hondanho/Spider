@@ -1,12 +1,8 @@
 ﻿using DotnetCrawler.Core;
 using DotnetCrawler.Data.ModelDb;
-using DotnetCrawler.Data.Models;
-using DotnetCrawler.Data.Repository;
 using DotnetCrawler.Data.Setting;
 using DotnetCrawler.Downloader;
-using DotnetCrawler.Pipeline;
-using DotnetCrawler.Request;
-using System.Collections.Generic;
+using DotnetCrawler.Scheduler;
 using System.Threading.Tasks;
 
 namespace DotnetCrawler.Api.Service

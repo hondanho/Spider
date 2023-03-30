@@ -14,6 +14,9 @@ namespace DotnetCrawler.Data.Models
             {
                 return Id.ToString() ?? string.Empty;
             }
+            set { 
+                Id = new ObjectId(value);
+            }
         }
         public DateTime CreatedAt => Id.CreationTime;
     }
