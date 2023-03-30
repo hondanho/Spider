@@ -1,8 +1,10 @@
-﻿using DotnetCrawler.Data.Models;
+﻿using DotnetCrawler.Core.Extension;
+using DotnetCrawler.Data.Models;
 using DotnetCrawler.Request;
 using HtmlAgilityPack;
 using HtmlAgilityPack.CssSelectors.NetCore;
 using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -18,7 +20,7 @@ namespace DotnetCrawler.Processor
             _request = request;
         }
 
-        public async Task<PostDb> PostProcess(HtmlDocument document)
+        public async Task<PostDb> PostProcess(string categoryId, string url, HtmlDocument document)
         {
             // remove element by css selector
             if(_request.PostSetting.RemoveElementCssSelector != null && _request.PostSetting.RemoveElementCssSelector.Count > 0) {
@@ -67,11 +69,12 @@ namespace DotnetCrawler.Processor
             }
 
             var avatar = entityNode.QuerySelector(_request.PostSetting.Avatar)?.GetAttributeValue("src", null);
-            if (!IsValidURL(avatar)) avatar = _request.CategorySetting.Domain + avatar;
-
+            if (!Helper.IsValidURL(avatar)) avatar = _request.CategorySetting.Domain + avatar;
             var entity = new PostDb()
             {
+                CategoryId = categoryId,
                 Titlte = entityNode.QuerySelector(_request.PostSetting.Titlte)?.InnerText,
+                Slug = (new Uri(url)).AbsolutePath,
                 Description = entityNode.QuerySelector(_request.PostSetting.Description)?.InnerText,
                 Avatar = avatar,
                 Taxonomies = taxonomies,
@@ -81,7 +84,7 @@ namespace DotnetCrawler.Processor
             return entity;
         }
 
-        public async Task<ChapDb> ChapProcess(HtmlDocument document)
+        public async Task<ChapDb> ChapProcess(string postId, string url, HtmlDocument document)
         {
             // remove element by css selector
             if(_request.PostSetting.RemoveElementCssSelector != null && _request.PostSetting.RemoveElementCssSelector.Count > 0) {
@@ -110,19 +113,13 @@ namespace DotnetCrawler.Processor
             var entityNode = document.DocumentNode;
             var entity = new ChapDb()
             {
+                PostId = postId,
                 Titlte = entityNode.QuerySelector(_request.ChapSetting.Titlte)?.InnerText,
                 Content = entityNode.QuerySelector(_request.ChapSetting.Content)?.InnerText,
-                Slug = entityNode.QuerySelector(_request.ChapSetting.Slug)?.InnerText
+                Slug = (new Uri(url)).AbsolutePath
             };
 
             return entity;
-        }
-
-        private bool IsValidURL(string URL)
-        {
-            string Pattern = @"^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$";
-            Regex Rgx = new Regex(Pattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
-            return Rgx.IsMatch(URL);
         }
     }
 }

@@ -8,17 +8,24 @@ using System;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using MongoDB.Driver.Core.Configuration;
 
 namespace DotnetCrawler.Data.Repository
 {
     public class MongoRepository<TDocument> : IMongoRepository<TDocument>
     where TDocument : IDocument
     {
-        private readonly IMongoCollection<TDocument> _collection;
-
+        private IMongoCollection<TDocument> _collection;
+        private readonly string _connectionString;
         public MongoRepository(IMongoDbSettings settings)
         {
+            _connectionString = settings.ConnectionString;
             var database = new MongoClient(settings.ConnectionString).GetDatabase(settings.DatabaseName);
+            _collection = database.GetCollection<TDocument>(GetCollectionName(typeof(TDocument)));
+        }
+
+        public void SetCollectionSave(string collectionName) {
+            var database = new MongoClient(_connectionString).GetDatabase(collectionName);
             _collection = database.GetCollection<TDocument>(GetCollectionName(typeof(TDocument)));
         }
 

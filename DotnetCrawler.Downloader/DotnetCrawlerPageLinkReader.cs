@@ -1,4 +1,5 @@
-﻿using DotnetCrawler.Request;
+﻿using DotnetCrawler.Core.Extension;
+using DotnetCrawler.Request;
 using HtmlAgilityPack;
 using HtmlAgilityPack.CssSelectors.NetCore;
 using System;
@@ -32,7 +33,7 @@ namespace DotnetCrawler.Downloader
                                 .Select(a =>
                                 {
                                     string href = a.GetAttributeValue("href", null);
-                                    if (!IsValidURL(href))
+                                    if (!Helper.IsValidURL(href))
                                     {
                                         return _request.CategorySetting.Domain + href;
                                     }
@@ -80,7 +81,7 @@ namespace DotnetCrawler.Downloader
                                 .Select(a =>
                                 {
                                     string href = a.GetAttributeValue("href", null);
-                                    if (!IsValidURL(href))
+                                    if (!Helper.IsValidURL(href))
                                     {
                                         return _request.CategorySetting.Domain + href;
                                     }
@@ -102,13 +103,6 @@ namespace DotnetCrawler.Downloader
             var result = await Task.WhenAll(rootUrls.Select(url => GetPageLinks(url, cssSelectorLink)));
 
             return result.SelectMany(x => x).Distinct();
-        }
-
-        bool IsValidURL(string URL)
-        {
-            string Pattern = @"^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$";
-            Regex Rgx = new Regex(Pattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
-            return Rgx.IsMatch(URL);
         }
     }
 }

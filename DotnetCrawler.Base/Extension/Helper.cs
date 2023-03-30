@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Net.NetworkInformation;
 using System.Text;
 using System.Net;
+using System.Text.RegularExpressions;
 
 namespace DotnetCrawler.Core.Extension {
     public  class Helper {
@@ -63,6 +64,12 @@ namespace DotnetCrawler.Core.Extension {
             }
 
             return proxyString;
+        }
+
+        public static bool IsValidURL(string URL) {
+            string Pattern = @"^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$";
+            Regex Rgx = new Regex(Pattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
+            return Rgx.IsMatch(URL);
         }
     }
 }

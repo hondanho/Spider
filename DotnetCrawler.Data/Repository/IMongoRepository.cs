@@ -9,6 +9,7 @@ namespace DotnetCrawler.Data.Repository
 {
     public interface IMongoRepository<TDocument> where TDocument : IDocument
     {
+        void SetCollectionSave(string collectionName);
         IQueryable<TDocument> AsQueryable();
 
         IEnumerable<TDocument> FilterBy(
