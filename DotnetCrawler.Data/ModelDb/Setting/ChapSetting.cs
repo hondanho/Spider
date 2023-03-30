@@ -7,7 +7,7 @@ using System.Text;
 
 namespace DotnetCrawler.Data.Setting {
 
-    public class ChapSetting : BaseSetting {
+    public class ChapSetting {
         [Required]
         public string Titlte { get; set; }
         [Required]

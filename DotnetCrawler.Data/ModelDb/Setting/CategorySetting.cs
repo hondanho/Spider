@@ -2,12 +2,7 @@
 
 namespace DotnetCrawler.Data.Setting {
 
-    public class CategorySetting : BaseSetting {
-        /// <summary>
-        /// Domain spy
-        /// </summary>
-        [Required]
-        public string Domain { get; set; }
+    public class CategorySetting {
         public long TimeOut { get; set; }
 
         /// <summary>

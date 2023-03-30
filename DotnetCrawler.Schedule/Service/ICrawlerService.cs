@@ -1,9 +1,11 @@
-﻿using System.Threading.Tasks;
+﻿using DotnetCrawler.Data.ModelDb;
+using DotnetCrawler.Request;
+using System.Threading.Tasks;
 
 namespace DotnetCrawler.Api.Service
 {
     public interface ICrawlerService
     {
-        Task Crawler();
+        Task Crawler(SiteConfigDb dotnetCrawlerRequest);
     }
 }

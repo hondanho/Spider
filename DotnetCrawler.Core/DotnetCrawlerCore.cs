@@ -1,11 +1,10 @@
-﻿using DotnetCrawler.Data.Models;
+﻿using DotnetCrawler.Data.ModelDb;
+using DotnetCrawler.Data.Models;
 using DotnetCrawler.Data.Repository;
 using DotnetCrawler.Downloader;
 using DotnetCrawler.Pipeline;
 using DotnetCrawler.Processor;
 using DotnetCrawler.Request;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using System;
 using System.Linq;
 using System.Linq.Expressions;
@@ -13,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace DotnetCrawler.Core {
     public class DotnetCrawlerCore<T> : IDotnetCrawlerCore<T> where T : class {
-        public IDotnetCrawlerRequest Request { get; private set; }
+        public SiteConfigDb Request { get; private set; }
         public IDotnetCrawlerDownloader Downloader { get; private set; }
         public IDotnetCrawlerScheduler Scheduler { get; private set; }
         private readonly IMongoRepository<PostDb> _postDbRepository;
@@ -26,7 +25,7 @@ namespace DotnetCrawler.Core {
             _categoryDbRepository = categoryDbRepository;
         }
 
-        public DotnetCrawlerCore<T> AddRequest(IDotnetCrawlerRequest request) {
+        public DotnetCrawlerCore<T> AddRequest(SiteConfigDb request) {
             Request = request;
             return this;
         }
@@ -59,9 +58,9 @@ namespace DotnetCrawler.Core {
                     Titlte = Request.CategorySetting.Titlte
                 };
                 await _categoryDbRepository.InsertOneAsync(category);
-                Console.WriteLine(string.Format("Category new: Id: {0}, Title: {1}", category.Id, category.Titlte));
+                Console.WriteLine(string.Format("Category new: Id: {0}, Title: {1}", category.IdString, category.Titlte));
             } else {
-                Console.WriteLine(string.Format("Category đã tồn tại: Id: {0}, Title: {1}", category.Id, category.Titlte));
+                Console.WriteLine(string.Format("Category existed: Id: {0}, Title: {1}", category.IdString, category.Titlte));
             }
 
             // get list chap
@@ -79,14 +78,14 @@ namespace DotnetCrawler.Core {
 
                     // get info chap
                     var htmlDocumentPost = await Downloader.Download(urlPost);
-                    var post = await (new CrawlerProcessor(Request).PostProcess(category.Id.ToString(), urlPost, htmlDocumentPost));
+                    var post = await (new CrawlerProcessor(Request).PostProcess(category.IdString, urlPost, htmlDocumentPost));
 
                     // check post duplicate
-                    if(IsDuplicatePost(Request, category.Id, post)) {
-                        Console.WriteLine(string.Format("Post đã tồn tại: Id: {0}, Title: {1}", post.Id, post.Titlte));
+                    if(IsDuplicatePost(Request, category.IdString, post)) {
+                        Console.WriteLine(string.Format("Post existed: Id: {0}, Title: {1}", post.IdString, post.Titlte));
                     } else {
                         await _postDbRepository.InsertOneAsync(post);
-                        Console.WriteLine(string.Format("Post new: Id: {0}, Title: {1}", post.Id, post.Titlte));
+                        Console.WriteLine(string.Format("Post new: Id: {0}, Title: {1}", post.IdString, post.Titlte));
                     }
 
                     if(Request.PostSetting.IsHasChapter) {
@@ -101,14 +100,14 @@ namespace DotnetCrawler.Core {
                                     continue;
 
                                 var htmlDocumentChap = await Downloader.Download(urlChap);
-                                var chap = await (new CrawlerProcessor(Request).ChapProcess(post.Id.ToString(), urlChap, htmlDocumentChap));
+                                var chap = await (new CrawlerProcessor(Request).ChapProcess(post.IdString, urlChap, htmlDocumentChap));
 
                                 // check chap duplicate
-                                if(IsDuplicateChap(Request, chap.Id, chap)) {
-                                    Console.WriteLine(string.Format("Chap đã tồn tại: Id: {0}, Title: {1}", chap.Id, chap.Titlte));
+                                if(IsDuplicateChap(Request, chap.IdString, chap)) {
+                                    Console.WriteLine(string.Format("Chap existed: Id: {0}, Title: {1}", chap.IdString, chap.Titlte));
                                 } else {
                                     await _chapDbRepository.InsertOneAsync(chap);
-                                    Console.WriteLine(string.Format("Chap new: Id: {0}, Title: {1}", chap.Id, chap.Titlte));
+                                    Console.WriteLine(string.Format("Chap new: Id: {0}, Title: {1}", chap.IdString, chap.Titlte));
                                 }
                             }
 
@@ -129,9 +128,9 @@ namespace DotnetCrawler.Core {
             }
         }
 
-        private bool IsDuplicatePost(IDotnetCrawlerRequest request, object categoryId, PostDb post) {
+        private bool IsDuplicatePost(SiteConfigDb request, string categoryId, PostDb post) {
             if(request.BasicSetting.CheckDuplicateTitlePost || request.BasicSetting.CheckDuplicateSlugPost) {
-                Expression<Func<PostDb, bool>> condition = pdb => pdb.CategoryId == categoryId.ToString() &&
+                Expression<Func<PostDb, bool>> condition = pdb => pdb.CategoryId == categoryId &&
                                         (request.BasicSetting.CheckDuplicateSlugPost ? pdb.Slug == post.Slug : true) &&
                                         (request.BasicSetting.CheckDuplicateTitlePost ? pdb.Titlte == post.Titlte : true);
                 var postDuplicate = _postDbRepository.FindOne(condition);
@@ -141,9 +140,9 @@ namespace DotnetCrawler.Core {
             return false;
         }
 
-        private bool IsDuplicateChap(IDotnetCrawlerRequest request, object postId, ChapDb chap) {
+        private bool IsDuplicateChap(SiteConfigDb request, string postId, ChapDb chap) {
             if(request.BasicSetting.CheckDuplicateTitleChap || request.BasicSetting.CheckDuplicateSlugChap) {
-                Expression<Func<ChapDb, bool>> condition = pdb => pdb.PostId == postId.ToString() &&
+                Expression<Func<ChapDb, bool>> condition = pdb => pdb.PostId == postId &&
                                         (request.BasicSetting.CheckDuplicateSlugChap ? pdb.Slug == chap.Slug : true) &&
                                         (request.BasicSetting.CheckDuplicateTitleChap ? pdb.Titlte == chap.Titlte : true);
                 var chapDuplicate = _chapDbRepository.FindOne(condition);

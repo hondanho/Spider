@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace DotnetCrawler.Data.Setting {
 
-    public class PostSetting : BaseSetting {
+    public class PostSetting {
         [Required]
         /// <summary>
         /// string xpath title
@@ -40,11 +40,11 @@ namespace DotnetCrawler.Data.Setting {
         /// key,xpath ví dụ: tac-gia,.col-truyen-main .info-holder div:first-child > a
         /// category,.col-truyen-main .info div:nth-child(3) a
         /// </summary>
-        public Dictionary<string, string> Taxonomies { get; set; }
+        public List<Dictionary> Taxonomies { get; set; }
         /// <summary>
         /// key, xpath example tw_status, .col-truyen-main .info div:last-child a
         /// </summary>
-        public Dictionary<string, string> Metadata { get; set; }
+        public List<Dictionary> Metadata { get; set; }
         /// <summary>
         ///  remove element như script, link, iframe, video
         /// </summary>
@@ -59,5 +59,10 @@ namespace DotnetCrawler.Data.Setting {
         /// </summary>
         public string PagingSelector { get; set; }
 
+    }
+
+    public class Dictionary {
+        public string Key { get; set; }
+        public string Value { get; set; }
     }
 }

@@ -14,7 +14,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using MongoDB.Driver;
 using DotnetCrawler.Core;
-using System;
+using Microsoft.AspNetCore.Http.Features;
 
 namespace DotnetCrawler.Api
 {
@@ -72,6 +72,12 @@ namespace DotnetCrawler.Api
             services.AddScoped(typeof(IMongoRepository<>), typeof(MongoRepository<>));
             services.AddScoped<ICrawlerService, CrawlerService>();
             services.AddScoped(typeof(IDotnetCrawlerCore<>), typeof(DotnetCrawlerCore<>));
+            services.Configure<FormOptions>(options =>
+            {
+                options.ValueLengthLimit = int.MaxValue;
+                options.MultipartBodyLengthLimit = int.MaxValue;
+                options.MultipartHeadersLengthLimit = int.MaxValue;
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

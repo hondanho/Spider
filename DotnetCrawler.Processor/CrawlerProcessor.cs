@@ -1,4 +1,5 @@
 ﻿using DotnetCrawler.Core.Extension;
+using DotnetCrawler.Data.ModelDb;
 using DotnetCrawler.Data.Models;
 using DotnetCrawler.Request;
 using HtmlAgilityPack;
@@ -14,9 +15,9 @@ namespace DotnetCrawler.Processor
 {
     public class CrawlerProcessor : ICrawlerProcessor
     {
-        private readonly IDotnetCrawlerRequest _request;
+        private readonly SiteConfigDb _request;
 
-        public CrawlerProcessor(IDotnetCrawlerRequest request) {
+        public CrawlerProcessor(SiteConfigDb request) {
             _request = request;
         }
 
@@ -69,7 +70,7 @@ namespace DotnetCrawler.Processor
             }
 
             var avatar = entityNode.QuerySelector(_request.PostSetting.Avatar)?.GetAttributeValue("src", null);
-            if (!Helper.IsValidURL(avatar)) avatar = _request.CategorySetting.Domain + avatar;
+            if (!Helper.IsValidURL(avatar)) avatar = _request.BasicSetting.Domain + avatar;
             var entity = new PostDb()
             {
                 CategoryId = categoryId,

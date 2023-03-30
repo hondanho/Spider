@@ -1,4 +1,5 @@
 ﻿using DotnetCrawler.Core.Extension;
+using DotnetCrawler.Data.ModelDb;
 using DotnetCrawler.Request;
 using HtmlAgilityPack;
 using HtmlAgilityPack.CssSelectors.NetCore;
@@ -17,9 +18,9 @@ namespace DotnetCrawler.Downloader
     /// </summary>
     public class DotnetCrawlerPageLinkReader
     {
-        private readonly IDotnetCrawlerRequest _request;
+        private readonly SiteConfigDb _request;
 
-        public DotnetCrawlerPageLinkReader(IDotnetCrawlerRequest request)
+        public DotnetCrawlerPageLinkReader(SiteConfigDb request)
         {
             _request = request;
         }
@@ -35,7 +36,7 @@ namespace DotnetCrawler.Downloader
                                     string href = a.GetAttributeValue("href", null);
                                     if (!Helper.IsValidURL(href))
                                     {
-                                        return _request.CategorySetting.Domain + href;
+                                        return _request.BasicSetting.Domain + href;
                                     }
 
                                     return href;
@@ -83,7 +84,7 @@ namespace DotnetCrawler.Downloader
                                     string href = a.GetAttributeValue("href", null);
                                     if (!Helper.IsValidURL(href))
                                     {
-                                        return _request.CategorySetting.Domain + href;
+                                        return _request.BasicSetting.Domain + href;
                                     }
 
                                     return href;
