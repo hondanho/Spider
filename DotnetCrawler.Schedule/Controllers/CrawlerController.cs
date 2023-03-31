@@ -5,6 +5,7 @@ using Hangfire;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace DotnetCrawler.Api.Controllers
@@ -47,6 +48,27 @@ namespace DotnetCrawler.Api.Controllers
                 ChapSetting = siteConfig.ChapSetting
             }));
             return Ok($"Job Id {jobId} Completed");
+        }
+
+        [HttpPost()]
+        [Route("run-process-all")]
+        public async Task<IActionResult> RunAllProcessAsync()
+        {
+            var siteConfigs = _siteConfigDbRepository.AsQueryable().ToList();
+            if (siteConfigs.Any())
+            {
+                foreach (var siteConfig in siteConfigs)
+                {
+                    BackgroundJob.Enqueue(() => _crawlerService.Crawler(new SiteConfigDb()
+                    {
+                        BasicSetting = siteConfig.BasicSetting,
+                        CategorySetting = siteConfig.CategorySetting,
+                        PostSetting = siteConfig.PostSetting,
+                        ChapSetting = siteConfig.ChapSetting
+                    }));
+                }
+            }
+            return Ok($"Job Id Completed");
         }
 
         [HttpPost]

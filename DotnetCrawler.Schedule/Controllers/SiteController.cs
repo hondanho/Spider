@@ -13,7 +13,6 @@ namespace DotnetCrawler.Api.Controllers
     [Route("[controller]")]
     public class SiteController : ControllerBase
     {
-
         private readonly IMongoRepository<SiteConfigDb> _siteConfigDbRepository;
         private readonly ILogger<SiteController> _logger;
 

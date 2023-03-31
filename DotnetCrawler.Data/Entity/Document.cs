@@ -1,7 +1,6 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using System;
-using System.Runtime.InteropServices;
 
 namespace DotnetCrawler.Data.Models
 {
@@ -14,8 +13,8 @@ namespace DotnetCrawler.Data.Models
             {
                 return Id.ToString() ?? string.Empty;
             }
-            set { 
-                Id = new ObjectId(value);
+            set {
+                Id = !string.IsNullOrEmpty(value) ? new ObjectId(value) : new ObjectId();
             }
         }
         public DateTime CreatedAt => Id.CreationTime;

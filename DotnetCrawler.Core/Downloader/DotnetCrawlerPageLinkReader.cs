@@ -104,11 +104,12 @@ namespace DotnetCrawler.Downloader
                         href = _request.BasicSetting.Domain + href;
                     }
 
-                    if (!string.IsNullOrEmpty(node.InnerText) && !string.IsNullOrEmpty(href)) {
+                    var slug = (new Uri(href)).AbsolutePath;
+                    if (!string.IsNullOrEmpty(node.InnerText) && !string.IsNullOrEmpty(href) && !string.IsNullOrEmpty(slug)) {
                         linkList.Add(new LinkModel() {
                             Titlte = node.InnerText,
                             Url = href,
-                            Slug = (new Uri(href)).AbsolutePath
+                            Slug = slug
                         });
                     }
                 }

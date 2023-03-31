@@ -93,7 +93,7 @@ namespace DotnetCrawler.Core
                 if (!linksPost.Any())
                     break;
 
-                var postServers = _postDbRepository.FilterBy(pdb => 
+                var postServers = _postDbRepository.FilterBy(pdb =>
                                         pdb.CategoryId == category.IdString &&
                                         linksPost.Any(lp => lp.Slug == pdb.Slug || lp.Titlte == pdb.Titlte)
                                     );
@@ -101,25 +101,32 @@ namespace DotnetCrawler.Core
                 foreach (var linkPost in linksPost.Take(1)) ///fake
                 {
                     // check post duplicate
-                    if(IsDuplicatePost(Request, postServers, linkPost)) {
-                        post.IdString = postServer.IdString;
-                        Console.WriteLine(string.Format("Post existed: Id: {0}, Title: {1}, Slug: {2}", post.IdString, post.Titlte, post.Slug));
-                    } else {
-
-                        await _postDbRepository.InsertOneAsync(post);
-                        Console.WriteLine(string.Format("Post new: Id: {0}, Title: {1}, Slug: {2}", post.IdString, post.Titlte, post.Slug));
+                    string idPostString = string.Empty;
+                    var isDuplicate = IsDuplicatePost(Request, postServers, linkPost, ref idPostString);
+                    if (!Request.PostSetting.IsHasChapter && isDuplicate)
+                    {
+                        Console.WriteLine(string.Format("Post existed: Title: {1}, Slug: {2}", idPostString, linkPost.Titlte, linkPost.Slug));
+                        continue;
                     }
 
-                    // get info chap
                     var htmlDocumentPost = await Downloader.Download(linkPost.Url);
                     var post = await (new CrawlerProcessor(Request).PostProcess(category.IdString, linkPost.Url, htmlDocumentPost));
 
-                    if (Request.PostSetting.IsHasChapter)
+                    if (!isDuplicate)
                     {
-                        // get info chap
-                        GetChap(linkReader, htmlDocumentPost, post);
+                        await _postDbRepository.InsertOneAsync(post);
+                        Console.WriteLine(string.Format("Post new: Id: {0}, Title: {1}, Slug: {2}", post.IdString, post.Titlte, post.Slug));
+                    } else
+                    {
+                        post.IdString = idPostString;
+                        Console.WriteLine(string.Format("Post existed: Title: {1}, Slug: {2}", post.IdString, linkPost.Titlte, linkPost.Slug));
                     }
 
+                    // get info chap
+                    if (Request.PostSetting.IsHasChapter)
+                    {
+                        GetChap(linkReader, htmlDocumentPost, post);
+                    }
                 }
 
                 var urlCategoryPostNext = (await linkReader.GetLinks(htmlDocumentCategory, Request.CategorySetting.PagingSelector)).FirstOrDefault();
@@ -133,25 +140,27 @@ namespace DotnetCrawler.Core
         {
             while (true)
             {
-                var linksChap = await linkReader.GetLinks(htmlDocumentPost, Request.PostSetting.LinkChapSelector);
+                var linksChap = await linkReader.GetPageLinkModel(htmlDocumentPost, Request.PostSetting.LinkChapSelector);
                 if (!linksChap.Any())
                     break;
 
-                foreach (var urlChap in linksChap)
+                var chapServer = _chapDbRepository.FilterBy(pdb =>
+                                    pdb.PostId == post.IdString &&
+                                    linksChap.Any(lp => lp.Slug == pdb.Slug || lp.Titlte == pdb.Titlte)
+                                );
+
+                foreach (var linkChap in linksChap.Take(1)) /// fake
                 {
-                    if (string.IsNullOrEmpty(urlChap))
-                        continue;
-
-                    var htmlDocumentChap = await Downloader.Download(urlChap);
-                    var chap = await (new CrawlerProcessor(Request).ChapProcess(post.IdString, urlChap, htmlDocumentChap));
-
                     // check chap duplicate
-                    if (IsDuplicateChap(Request, post.IdString, chap))
+                    var isDuplicateChap = IsDuplicateChap(Request, chapServer, linkChap);
+                    if (isDuplicateChap)
                     {
-                        Console.WriteLine(string.Format("Chap existed: Title: {0}, Slug: {1}", chap.Titlte, chap.Slug));
+                        Console.WriteLine(string.Format("Chap existed: Title: {0}, Slug: {1}", linkChap.Titlte, linkChap.Slug));
                     }
                     else
                     {
+                        var htmlDocumentChap = await Downloader.Download(linkChap.Url);
+                        var chap = await (new CrawlerProcessor(Request).ChapProcess(post.IdString, linkChap.Url, htmlDocumentChap));
                         await _chapDbRepository.InsertOneAsync(chap);
                         Console.WriteLine(string.Format("Chap new: Title: {0}, Slug: {1}", chap.Titlte, chap.Slug));
                     }
@@ -161,11 +170,12 @@ namespace DotnetCrawler.Core
                 if (string.IsNullOrEmpty(urlPostChapNext))
                     break;
                 htmlDocumentPost = await Downloader.Download(urlPostChapNext);
+
+                break; /// fake
             }
         }
 
-
-        private bool IsDuplicatePost(SiteConfigDb request, IEnumerable<PostDb> postServers, LinkModel linkPost)
+        private bool IsDuplicatePost(SiteConfigDb request, IEnumerable<PostDb> postServers, LinkModel linkPost, ref string idPostString)
         {
             if (request.BasicSetting.CheckDuplicateTitlePost || request.BasicSetting.CheckDuplicateSlugPost || postServers.Any())
             {
@@ -173,21 +183,22 @@ namespace DotnetCrawler.Core
                                             (request.BasicSetting.CheckDuplicateSlugPost ? pdb.Slug == linkPost.Slug : true) &&
                                             (request.BasicSetting.CheckDuplicateTitlePost ? pdb.Titlte == linkPost.Titlte : true)
                                         );
+                idPostString = postExist?.IdString ?? string.Empty;
                 return postExist != null;
             }
 
             return false;
         }
 
-        private bool IsDuplicateChap(SiteConfigDb request, string postId, ChapDb chap)
+        private bool IsDuplicateChap(SiteConfigDb request, IEnumerable<ChapDb> chapServers, LinkModel linkChap)
         {
-            if (request.BasicSetting.CheckDuplicateTitleChap || request.BasicSetting.CheckDuplicateSlugChap)
+            if (request.BasicSetting.CheckDuplicateSlugChap || request.BasicSetting.CheckDuplicateTitleChap || chapServers.Any())
             {
-                Expression<Func<ChapDb, bool>> condition = pdb => pdb.PostId == postId &&
-                                        (request.BasicSetting.CheckDuplicateSlugChap ? pdb.Slug == chap.Slug : true) &&
-                                        (request.BasicSetting.CheckDuplicateTitleChap ? pdb.Titlte == chap.Titlte : true);
-                var chapDuplicate = _chapDbRepository.FindOne(condition);
-                return chapDuplicate != null;
+                var chapExist = chapServers.FirstOrDefault(pdb =>
+                                            (request.BasicSetting.CheckDuplicateSlugChap ? pdb.Slug == linkChap.Slug : true) &&
+                                            (request.BasicSetting.CheckDuplicateTitleChap ? pdb.Titlte == linkChap.Titlte : true)
+                                        );
+                return chapExist != null;
             }
 
             return false;
