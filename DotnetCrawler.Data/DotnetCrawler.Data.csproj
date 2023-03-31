@@ -5,9 +5,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="ModelDb\Ebay\**" />
-    <EmbeddedResource Remove="ModelDb\Ebay\**" />
-    <None Remove="ModelDb\Ebay\**" />
+    <Compile Remove="Entity\Ebay\**" />
+    <EmbeddedResource Remove="Entity\Ebay\**" />
+    <None Remove="Entity\Ebay\**" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,4 +1,5 @@
 ﻿using DotnetCrawler.Base.Extension;
+using DotnetCrawler.Data.Model;
 using DotnetCrawler.Data.ModelDb;
 using HtmlAgilityPack;
 using HtmlAgilityPack.CssSelectors.NetCore;
@@ -51,6 +52,7 @@ namespace DotnetCrawler.Downloader
             return tasks.SelectMany(l => l);
         }
 
+
         public async Task<IEnumerable<string>> GetLinks(string url, string cssSelectorLink, int level = 0)
         {
             if (level < 0)
@@ -68,19 +70,15 @@ namespace DotnetCrawler.Downloader
             return tasks.SelectMany(l => l);
         }
 
-        private async Task<IEnumerable<string>> GetPageLinks(string url, string cssSelectorLink, bool needMatch = true)
-        {
-            try
-            {
+        private async Task<IEnumerable<string>> GetPageLinks(string url, string cssSelectorLink, bool needMatch = true) {
+            try {
                 HtmlWeb web = new HtmlWeb();
                 var htmlDocument = await web.LoadFromWebAsync(url);
 
                 var linkList = htmlDocument.DocumentNode.QuerySelectorAll(cssSelectorLink)
-                                .Select(a =>
-                                {
+                                .Select(a => {
                                     string href = a.GetAttributeValue("href", null);
-                                    if (!Helper.IsValidURL(href))
-                                    {
+                                    if(!Helper.IsValidURL(href)) {
                                         return _request.BasicSetting.Domain + href;
                                     }
 
@@ -89,10 +87,37 @@ namespace DotnetCrawler.Downloader
                                 .Where(u => !string.IsNullOrEmpty(u))
                                 .Distinct().ToList();
                 return linkList;
+            } catch(Exception exception) {
+                return Enumerable.Empty<string>();
+            }
+        }
+
+        public async Task<IEnumerable<LinkModel>> GetPageLinkModel(HtmlDocument document, string cssSelectorLink) {
+            try
+            {
+                var linkList = new List<LinkModel>();
+
+                var htmlNodes = document.DocumentNode.QuerySelectorAll(cssSelectorLink);
+                foreach(var node in htmlNodes) {
+                    string href = node.GetAttributeValue("href", null);
+                    if(!Helper.IsValidURL(href)) {
+                        href = _request.BasicSetting.Domain + href;
+                    }
+
+                    if (!string.IsNullOrEmpty(node.InnerText) && !string.IsNullOrEmpty(href)) {
+                        linkList.Add(new LinkModel() {
+                            Titlte = node.InnerText,
+                            Url = href,
+                            Slug = (new Uri(href)).AbsolutePath
+                        });
+                    }
+                }
+
+                return linkList.Distinct();
             }
             catch (Exception exception)
             {
-                return Enumerable.Empty<string>();
+                return Enumerable.Empty<LinkModel>();
             }
         }
 
