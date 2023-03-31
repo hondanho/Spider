@@ -12,5 +12,6 @@ namespace DotnetCrawler.Core
         DotnetCrawlerCore<T> AddDownloader(IDotnetCrawlerDownloader downloader);
         DotnetCrawlerCore<T> AddScheduler(IDotnetCrawlerScheduler scheduler);
         Task Crawle();
+        Task ReCrawle();
     }
 }

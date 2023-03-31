@@ -5,6 +5,7 @@ namespace DotnetCrawler.Api.Service
 {
     public interface ICrawlerService
     {
-        Task Crawler(SiteConfigDb dotnetCrawlerRequest);
+        Task Crawler(SiteConfigDb crawlerRequest);
+        Task ReCrawle(SiteConfigDb crawlerRequest);
     }
 }

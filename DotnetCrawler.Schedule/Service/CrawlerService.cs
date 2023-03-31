@@ -27,8 +27,22 @@ namespace DotnetCrawler.Api.Service
                     Proxys = siteConfigDb.BasicSetting.Proxys
                 })
                 .AddScheduler(new DotnetCrawlerScheduler() { });
-
             await crawler.Crawle();
+        }
+
+        public async Task ReCrawle(SiteConfigDb siteConfigDb)
+        {
+            var crawler = _dotnetCrawlerCore
+                .AddRequest(siteConfigDb)
+                .AddDownloader(new DotnetCrawlerDownloader
+                {
+                    DownloderType = DotnetCrawlerDownloaderType.FromMemory,
+                    DownloadPath = @"C:\DotnetCrawlercrawler\",
+                    Proxys = siteConfigDb.BasicSetting.Proxys
+                })
+                .AddScheduler(new DotnetCrawlerScheduler() { });
+
+            await crawler.ReCrawle();
         }
     }
 }
