@@ -11,7 +11,6 @@ namespace DotnetCrawler.Core
         DotnetCrawlerCore<T> AddRequest(SiteConfigDb request);
         DotnetCrawlerCore<T> AddDownloader(IDotnetCrawlerDownloader downloader);
         DotnetCrawlerCore<T> AddScheduler(IDotnetCrawlerScheduler scheduler);
-        Task Crawle();
-        Task ReCrawle();
+        Task Crawle(bool isReCrawleSmall = false);
     }
 }

@@ -1,11 +1,11 @@
 ﻿using DotnetCrawler.Api.Service;
 using DotnetCrawler.Data.ModelDb;
 using DotnetCrawler.Data.Repository;
+using DotnetCrawler.Data.Setting;
 using Hangfire;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace DotnetCrawler.Api.Controllers
@@ -19,72 +19,75 @@ namespace DotnetCrawler.Api.Controllers
         private readonly ILogger<CrawlerController> _logger;
         private readonly IMongoRepository<SiteConfigDb> _siteConfigDbRepository;
 
-        public CrawlerController(IMongoRepository<SiteConfigDb> siteConfigDbRepository, ICrawlerService crawlerService, ILogger<CrawlerController> logger)
+        private int scheduleHourReCrawlerBig;
+        private int scheduleHourReCrawlerSmall;
+
+        public CrawlerController(
+            IMongoRepository<SiteConfigDb> siteConfigDbRepository,
+            ICrawlerService crawlerService,
+            IConfiguration configuration,
+            ILogger<CrawlerController> logger)
         {
             _logger = logger;
             _crawlerService = crawlerService;
             _siteConfigDbRepository = siteConfigDbRepository;
+            scheduleHourReCrawlerSmall = configuration.GetValue<int>("Setting:ScheduleHourReCrawlerSmall");
+            scheduleHourReCrawlerBig = configuration.GetValue<int>("Setting:ScheduleHourReCrawlerBig");
         }
 
-        [HttpGet]
-        [Route("/")]
-        public string Get()
-        {
-            return "hello";
-        }
 
-        [HttpPost()]
-        [Route("run-process")]
-        public async Task<IActionResult> RunProcessAsync(string siteId)
+        [HttpPost]
+        [Route("crawler-all")]
+        public async Task<IActionResult> CrawlerAll()
         {
-            if (string.IsNullOrEmpty(siteId)) return NotFound();
-            var siteConfig = await _siteConfigDbRepository.FindByIdAsync(siteId);
-            if (siteConfig == null) return NotFound();
-            var jobId = BackgroundJob.Enqueue(() => _crawlerService.Crawler(new SiteConfigDb()
-            {
-                BasicSetting = siteConfig.BasicSetting,
-                CategorySetting = siteConfig.CategorySetting,
-                PostSetting = siteConfig.PostSetting,
-                ChapSetting = siteConfig.ChapSetting
-            }));
-            return Ok($"Job Id {jobId} Completed");
-        }
+            await _crawlerService.CrawlerAll();
 
-        [HttpPost()]
-        [Route("run-process-all")]
-        public async Task<IActionResult> RunAllProcessAsync()
-        {
-            var siteConfigs = _siteConfigDbRepository.AsQueryable().ToList();
-            if (siteConfigs.Any())
-            {
-                foreach (var siteConfig in siteConfigs)
-                {
-                    BackgroundJob.Enqueue(() => _crawlerService.Crawler(new SiteConfigDb()
-                    {
-                        BasicSetting = siteConfig.BasicSetting,
-                        CategorySetting = siteConfig.CategorySetting,
-                        PostSetting = siteConfig.PostSetting,
-                        ChapSetting = siteConfig.ChapSetting
-                    }));
-                }
-            }
-            return Ok($"Job Id Completed");
+            return Ok($"Crawler started");
         }
 
         [HttpPost]
-        [Route("delayed-process")]
-        public async Task<IActionResult> DelayedProcessAsync()
+        [Route("crawler-detail")]
+        public async Task<IActionResult> CrawlerDetail(string siteId)
         {
-            var jobId = BackgroundJob.Schedule(() => Console.WriteLine($"Welcome to our application, "), TimeSpan.FromSeconds(10));
-            return Ok($"Job Id {jobId} Completed. Delayed Welcome Mail Sent!");
+           await _crawlerService.Crawler(siteId);
+
+            return Ok($"Crawler started");
         }
 
         [HttpPost]
-        [Route("schedule-process")]
-        public async Task<IActionResult> ScheduleProcessAsync()
+        [Route("recrawler-big-all")]
+        public async Task<IActionResult> RecrawlerBig(int? hour)
         {
-            RecurringJob.AddOrUpdate(() => Console.WriteLine($"Here is your invoice"), Cron.MinuteInterval(1));
-            return Ok($"Recurring Job Scheduled. Invoice will be mailed Monthly for !");
+            hour = hour ?? scheduleHourReCrawlerBig;
+            RecurringJob.AddOrUpdate(() => _crawlerService.ReCrawlerBig(), Cron.HourInterval(hour.Value));
+            return Ok($"Recrawler Big Started");
+        }
+
+        [HttpPost]
+        [Route("recrawler-small-all")]
+        public async Task<IActionResult> RecrawlerSmall(int? hour)
+        {
+            hour = hour ?? scheduleHourReCrawlerSmall;
+            RecurringJob.AddOrUpdate(() => _crawlerService.ReCrawlerSmall(), Cron.HourInterval(hour.Value));
+            return Ok($"Recrawler Big Started");
+        }
+
+
+        [HttpPost]
+        [Route("test")]
+        public async Task<IActionResult> Test()
+        {
+
+            //client.Create(() => _crawlerService.TaskD(3, 5));
+            //client.Create(() => _crawlerService.TaskD(4, 5));
+            BackgroundJob.Enqueue(() => _crawlerService.TaskD(5, 5));
+            BackgroundJob.Enqueue(() => _crawlerService.TaskD(6, 5));
+            BackgroundJob.Enqueue(() => _crawlerService.TaskD(7, 5));
+            BackgroundJob.Enqueue(() => _crawlerService.TaskD(8, 5));
+            BackgroundJob.Enqueue(() => _crawlerService.TaskD(9, 5));
+            BackgroundJob.Enqueue(() => _crawlerService.TaskD(10, 5));
+
+            return Ok($"Recurring Job Scheduled. Invoice will be mailed Monthly for job 1");
         }
     }
 }

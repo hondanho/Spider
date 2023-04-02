@@ -14,5 +14,7 @@ namespace DotnetCrawler.Data.Models
         public string Avatar { get; set; }
         public string Taxonomies { get; set; } // json data
         public string Metadata { get; set; } // json data
+        public string UrlListChapPagingLatest { get; set; }
+
     }
 }

@@ -1,8 +1,9 @@
-﻿using DotnetCrawler.Data.ModelDb;
+﻿using DotnetCrawler.Api.Service;
+using DotnetCrawler.Data.ModelDb;
 using DotnetCrawler.Data.Repository;
+using Hangfire;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -13,13 +14,16 @@ namespace DotnetCrawler.Api.Controllers
     [Route("[controller]")]
     public class SiteController : ControllerBase
     {
+        private readonly ICrawlerService _crawlerService;
         private readonly IMongoRepository<SiteConfigDb> _siteConfigDbRepository;
         private readonly ILogger<SiteController> _logger;
 
-        public SiteController(IMongoRepository<SiteConfigDb> siteConfigDbRepository, ILogger<SiteController> logger)
+        public SiteController(IMongoRepository<SiteConfigDb> siteConfigDbRepository, ILogger<SiteController> logger,
+            ICrawlerService crawlerService)
         {
             _logger = logger;
             _siteConfigDbRepository = siteConfigDbRepository;
+            _crawlerService = crawlerService;
         }
 
         [HttpGet]
@@ -29,40 +33,63 @@ namespace DotnetCrawler.Api.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<SiteConfigDb> CreateSiteCrawler(string id)
+        public async Task<SiteConfigDb> GetDetailSite(string id)
         {
             return await _siteConfigDbRepository.FindByIdAsync(id);
         }
 
         [HttpPost]
         [RequestSizeLimit(2147483648)] // e.g. 2 GB request limit
-        public async Task CreateSiteCrawler([FromBody] SiteConfigDb siteConfigDb)
+        public async Task CreateSite([FromBody] SiteConfigDb siteConfigDb)
         {
+            siteConfigDb.SystemStatus.Status = Data.Setting.StatusCrawler.DEFAULT;
             await _siteConfigDbRepository.InsertOneAsync(siteConfigDb);
+            if (siteConfigDb.BasicSetting.IsThuThap)
+            {
+                await _crawlerService.Crawler(siteConfigDb.IdString);
+            }
         }
 
         [HttpPut]
         [RequestSizeLimit(2147483648)] // e.g. 2 GB request limit
-        public async Task<SiteConfigDb> UpdateSiteCrawler([FromBody] SiteConfigDb siteConfigDb)
+        public async Task<SiteConfigDb> UpdateSite([FromBody] SiteConfigDb siteConfig)
         {
-            if (siteConfigDb != null && !string.IsNullOrEmpty(siteConfigDb.IdString))
+            if (siteConfig != null && !string.IsNullOrEmpty(siteConfig.IdString))
             {
-                var siteConfig = await _siteConfigDbRepository.FindByIdAsync(siteConfigDb.IdString);
-                if (siteConfig != null)
+                var siteConfigDb = await _siteConfigDbRepository.FindByIdAsync(siteConfig.IdString);
+                if (siteConfigDb != null)
                 {
-                    await _siteConfigDbRepository.ReplaceOneAsync(siteConfigDb);
+                    await _siteConfigDbRepository.ReplaceOneAsync(siteConfig);
+                }
+
+                if (siteConfigDb.BasicSetting.IsThuThap && !siteConfig.BasicSetting.IsThuThap && !string.IsNullOrEmpty(siteConfigDb.SystemStatus.JobId)) // đang thu thập -> ko thu thập
+                {
+                    BackgroundJob.Delete(siteConfigDb.SystemStatus.JobId);
+                }
+                else if (!siteConfigDb.BasicSetting.IsThuThap && siteConfig.BasicSetting.IsThuThap) // ko thu thập -> thu thập
+                {
+                    await _crawlerService.Crawler(siteConfigDb.IdString);
                 }
             }
 
-            return siteConfigDb;
+            return siteConfig;
         }
 
         [HttpDelete]
-        public async Task DeleteSiteCrawler(string siteConfigId)
+        public async Task DeleteSite(string siteConfigId)
         {
             if (!string.IsNullOrEmpty(siteConfigId))
             {
-                await _siteConfigDbRepository.DeleteByIdAsync(siteConfigId);
+                var siteConfigDb = await _siteConfigDbRepository.FindByIdAsync(siteConfigId);
+                if (siteConfigDb != null)
+                {
+                    await _siteConfigDbRepository.DeleteByIdAsync(siteConfigId);
+                }
+
+                if (!string.IsNullOrEmpty(siteConfigDb.SystemStatus.JobId))
+                {
+                    BackgroundJob.Delete(siteConfigDb.SystemStatus.JobId);
+                }
             }
         }
     }

@@ -15,6 +15,7 @@ using Microsoft.OpenApi.Models;
 using MongoDB.Driver;
 using DotnetCrawler.Core;
 using Microsoft.AspNetCore.Http.Features;
+using DotnetCrawler.API.Log;
 
 namespace DotnetCrawler.Api
 {
@@ -67,6 +68,7 @@ namespace DotnetCrawler.Api
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Crawler Site", Version = "v1" });
             });
 
+            GlobalConfiguration.Configuration.UseLogProvider(new CustomLogProvider());
             services.Configure<MongoDbSettings>(Configuration.GetSection("MongoDbSettings"));
             services.AddSingleton<IMongoDbSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<MongoDbSettings>>().Value);
             services.AddScoped(typeof(IMongoRepository<>), typeof(MongoRepository<>));

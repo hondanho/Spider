@@ -7,11 +7,10 @@ using DotnetCrawler.Downloader;
 using DotnetCrawler.Processor;
 using DotnetCrawler.Scheduler;
 using HtmlAgilityPack;
-using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace DotnetCrawler.Core
@@ -21,15 +20,22 @@ namespace DotnetCrawler.Core
         public SiteConfigDb Request { get; private set; }
         public IDotnetCrawlerDownloader Downloader { get; private set; }
         public IDotnetCrawlerScheduler Scheduler { get; private set; }
+        private int taskCount { get; set; } // Số lượng task cần thực thi
+
         private readonly IMongoRepository<PostDb> _postDbRepository;
         private readonly IMongoRepository<ChapDb> _chapDbRepository;
         private readonly IMongoRepository<CategoryDb> _categoryDbRepository;
 
-        public DotnetCrawlerCore(IMongoRepository<PostDb> postDbRepository, IMongoRepository<ChapDb> chapDbRepository, IMongoRepository<CategoryDb> categoryDbRepository)
+        public DotnetCrawlerCore(
+            IMongoRepository<PostDb> postDbRepository,
+            IMongoRepository<ChapDb> chapDbRepository,
+            IMongoRepository<CategoryDb> categoryDbRepository,
+            IConfiguration configuration)
         {
             _postDbRepository = postDbRepository;
             _chapDbRepository = chapDbRepository;
             _categoryDbRepository = categoryDbRepository;
+            taskCount = Int32.Parse(configuration.GetValue<string>("Setting:CrawlerTaskCount"));
         }
 
         public DotnetCrawlerCore<T> AddRequest(SiteConfigDb request)
@@ -50,7 +56,7 @@ namespace DotnetCrawler.Core
             return this;
         }
 
-        public async Task Crawle()
+        public async Task Crawle(bool isReCrawleSmall = false)
         {
             // set collection save
             _postDbRepository.SetCollectionSave(Request.BasicSetting.Document);
@@ -59,7 +65,6 @@ namespace DotnetCrawler.Core
             var linkReader = new DotnetCrawlerPageLinkReader(Request);
 
             // get data category
-            var htmlDocumentCategory = await Downloader.Download(Request.CategorySetting.Url);
             var category = _categoryDbRepository.FindOne(cdb => cdb.Slug == Request.CategorySetting.Slug);
             if (category == null)
             {
@@ -76,16 +81,22 @@ namespace DotnetCrawler.Core
                 Console.WriteLine(string.Format("Category existed: Slug: {0}, Title: {1}", category.Slug, category.Titlte));
             }
 
+            var urlCategoryCrawleFirst =
+                            isReCrawleSmall &&
+                            category != null &&
+                            !string.IsNullOrEmpty(category.UrlListPostPagingLatest)
+                    ? category.UrlListPostPagingLatest : Request.CategorySetting.Url;
+            var htmlDocumentCategory = await Downloader.Download(urlCategoryCrawleFirst);
+
             // get list post
-            GetPost(linkReader, htmlDocumentCategory, category);
+            GetPost(linkReader, htmlDocumentCategory, category, isReCrawleSmall);
         }
 
-        public async Task ReCrawle()
-        {
-
-        }
-
-        private async void GetPost(DotnetCrawlerPageLinkReader linkReader, HtmlDocument htmlDocumentCategory, CategoryDb category)
+        private async void GetPost(
+            DotnetCrawlerPageLinkReader linkReader,
+            HtmlDocument htmlDocumentCategory,
+            CategoryDb category,
+            bool isReCrawleSmall)
         {
             while (true)
             {
@@ -98,41 +109,68 @@ namespace DotnetCrawler.Core
                                         linksPost.Any(lp => lp.Slug == pdb.Slug || lp.Titlte == pdb.Titlte)
                                     );
 
-                foreach (var linkPost in linksPost.Take(1)) ///fake
+                Queue<LinkModel> jobQueue = new Queue<LinkModel>(linksPost);
+                int jobCount = jobQueue.Count(); // Số lượng công việc cần thực hiện
+                int counter = Math.Min(taskCount, jobCount); // Đặt giá trị ban đầu cho counter
+                Task[] tasks = new Task[counter];
+                for (int i = 0; i < counter; i++)
                 {
-                    // check post duplicate
-                    string idPostString = string.Empty;
-                    var isDuplicate = IsDuplicatePost(Request, postServers, linkPost, ref idPostString);
-                    if (!Request.PostSetting.IsHasChapter && isDuplicate)
+                    tasks[i] = Task.Run(async () =>
                     {
-                        Console.WriteLine(string.Format("Post existed: Title: {1}, Slug: {2}", idPostString, linkPost.Titlte, linkPost.Slug));
-                        continue;
-                    }
+                        while (jobQueue.TryDequeue(out var linkPost))
+                        {
+                            // Thực hiện công việc
 
-                    var htmlDocumentPost = await Downloader.Download(linkPost.Url);
-                    var post = await (new CrawlerProcessor(Request).PostProcess(category.IdString, linkPost.Url, htmlDocumentPost));
+                            // check post duplicate
+                            string idPostString = string.Empty;
+                            var isDuplicate = IsDuplicatePost(Request, postServers, linkPost);
+                            if (!Request.PostSetting.IsHasChapter && isDuplicate)
+                            {
+                                Console.WriteLine(string.Format("Post existed: Title: {1}, Slug: {2}", linkPost.Titlte, linkPost.Slug));
+                                continue;
+                            }
 
-                    if (!isDuplicate)
-                    {
-                        await _postDbRepository.InsertOneAsync(post);
-                        Console.WriteLine(string.Format("Post new: Id: {0}, Title: {1}, Slug: {2}", post.IdString, post.Titlte, post.Slug));
-                    } else
-                    {
-                        post.IdString = idPostString;
-                        Console.WriteLine(string.Format("Post existed: Title: {1}, Slug: {2}", post.IdString, linkPost.Titlte, linkPost.Slug));
-                    }
+                            var postExist = postServers.FirstOrDefault(pdb =>
+                                            (Request.BasicSetting.CheckDuplicateSlugPost ? pdb.Slug == linkPost.Slug : true) &&
+                                            (Request.BasicSetting.CheckDuplicateTitlePost ? pdb.Titlte == linkPost.Titlte : true)
+                                        );
+                            var urlPostCrawleFirst =
+                           isReCrawleSmall &&
+                           !string.IsNullOrEmpty(postExist?.UrlListChapPagingLatest)
+                   ? postExist.UrlListChapPagingLatest : linkPost.Url;
 
-                    // get info chap
-                    if (Request.PostSetting.IsHasChapter)
-                    {
-                        GetChap(linkReader, htmlDocumentPost, post);
-                    }
+                            var htmlDocumentPost = await Downloader.Download(urlPostCrawleFirst);
+                            var post = await (new CrawlerProcessor(Request).PostProcess(category.IdString, linkPost.Url, htmlDocumentPost));
+
+                            if (!isDuplicate)
+                            {
+                                await _postDbRepository.InsertOneAsync(post);
+                                Console.WriteLine(string.Format("Post new: Id: {0}, Title: {1}, Slug: {2}", post.IdString, post.Titlte, post.Slug));
+                            }
+                            else
+                            {
+                                post.IdString = idPostString;
+                                Console.WriteLine(string.Format("Post existed: Title: {1}, Slug: {2}", post.IdString, linkPost.Titlte, linkPost.Slug));
+                            }
+
+                            // get info chap
+                            if (Request.PostSetting.IsHasChapter)
+                            {
+                                GetChap(linkReader, htmlDocumentPost, post);
+                            }
+                            Console.WriteLine($"Executing job {linkPost.Url}");
+                            await Task.Delay(1000);
+                        }
+                    });
                 }
+                Task.WaitAll(tasks);
 
                 var urlCategoryPostNext = (await linkReader.GetLinks(htmlDocumentCategory, Request.CategorySetting.PagingSelector)).FirstOrDefault();
                 if (string.IsNullOrEmpty(urlCategoryPostNext))
                     break;
                 htmlDocumentCategory = await Downloader.Download(urlCategoryPostNext);
+                category.UrlListPostPagingLatest = urlCategoryPostNext;
+                await _categoryDbRepository.ReplaceOneAsync(category);
             }
         }
 
@@ -149,7 +187,7 @@ namespace DotnetCrawler.Core
                                     linksChap.Any(lp => lp.Slug == pdb.Slug || lp.Titlte == pdb.Titlte)
                                 );
 
-                foreach (var linkChap in linksChap.Take(1)) /// fake
+                foreach (var linkChap in linksChap)
                 {
                     // check chap duplicate
                     var isDuplicateChap = IsDuplicateChap(Request, chapServer, linkChap);
@@ -170,12 +208,12 @@ namespace DotnetCrawler.Core
                 if (string.IsNullOrEmpty(urlPostChapNext))
                     break;
                 htmlDocumentPost = await Downloader.Download(urlPostChapNext);
-
-                break; /// fake
+                post.UrlListChapPagingLatest = urlPostChapNext;
+                await _postDbRepository.ReplaceOneAsync(post);
             }
         }
 
-        private bool IsDuplicatePost(SiteConfigDb request, IEnumerable<PostDb> postServers, LinkModel linkPost, ref string idPostString)
+        private bool IsDuplicatePost(SiteConfigDb request, IEnumerable<PostDb> postServers, LinkModel linkPost)
         {
             if (request.BasicSetting.CheckDuplicateTitlePost || request.BasicSetting.CheckDuplicateSlugPost || postServers.Any())
             {
@@ -183,7 +221,6 @@ namespace DotnetCrawler.Core
                                             (request.BasicSetting.CheckDuplicateSlugPost ? pdb.Slug == linkPost.Slug : true) &&
                                             (request.BasicSetting.CheckDuplicateTitlePost ? pdb.Titlte == linkPost.Titlte : true)
                                         );
-                idPostString = postExist?.IdString ?? string.Empty;
                 return postExist != null;
             }
 
