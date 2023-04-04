@@ -1,17 +1,22 @@
 ﻿using Amazon.Runtime.Internal;
+using DotnetCrawler.Core.RabitMQ;
+using DotnetCrawler.Data.Constants;
 using DotnetCrawler.Data.Model;
 using DotnetCrawler.Data.ModelDb;
 using DotnetCrawler.Data.Models;
 using DotnetCrawler.Data.Repository;
+using DotnetCrawler.Data.Setting;
 using DotnetCrawler.Downloader;
 using DotnetCrawler.Processor;
 using DotnetCrawler.Scheduler;
+using Hangfire;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using WordPressPCL.Models;
 
 namespace DotnetCrawler.Core
 {
@@ -25,16 +30,19 @@ namespace DotnetCrawler.Core
         private readonly IMongoRepository<PostDb> _postDbRepository;
         private readonly IMongoRepository<ChapDb> _chapDbRepository;
         private readonly IMongoRepository<CategoryDb> _categoryDbRepository;
+        private readonly IRabitMQProducer _rabitMQProducer;
 
         public CrawlerCore(
             IMongoRepository<PostDb> postDbRepository,
             IMongoRepository<ChapDb> chapDbRepository,
+            IRabitMQProducer rabitMQProducer,
             IMongoRepository<CategoryDb> categoryDbRepository,
             IConfiguration configuration)
         {
             _postDbRepository = postDbRepository;
             _chapDbRepository = chapDbRepository;
             _categoryDbRepository = categoryDbRepository;
+            _rabitMQProducer = rabitMQProducer;
             crawlerTaskCount = configuration.GetValue<int>("Setting:CrawlerTaskCount");
         }
 
@@ -62,16 +70,32 @@ namespace DotnetCrawler.Core
             _postDbRepository.SetCollectionSave(Request.BasicSetting.Document);
             _chapDbRepository.SetCollectionSave(Request.BasicSetting.Document);
             _categoryDbRepository.SetCollectionSave(Request.BasicSetting.Document);
-            var linkReader = new DotnetCrawlerPageLinkReader(Request);
 
-            // get data category
-            var category = _categoryDbRepository.FindOne(cdb => cdb.Slug == Request.CategorySetting.Slug);
+            // add worker category
+            if (Request.CategorySetting.CategoryModels.Any())
+            {
+                foreach (var category in Request.CategorySetting.CategoryModels)
+                {
+                    if (!string.IsNullOrEmpty(category?.Slug) &&
+                        !string.IsNullOrEmpty(category?.Titlte) &&
+                        !string.IsNullOrEmpty(category?.Url))
+                    {
+                        BackgroundJob.Enqueue(() => JobCategory(category, isReCrawleSmall));
+                    }
+                }
+            }
+        }
+
+        private async void JobCategory(CategoryModel categoryModel, bool isReCrawleSmall = false)
+        {
+            var linkReader = new DotnetCrawlerPageLinkReader(Request);
+            var category = _categoryDbRepository.FindOne(cdb => cdb.Slug == categoryModel.Slug);
             if (category == null)
             {
                 category = new CategoryDb()
                 {
-                    Slug = Request.CategorySetting.Slug,
-                    Titlte = Request.CategorySetting.Titlte
+                    Slug = categoryModel.Slug,
+                    Titlte = categoryModel.Titlte
                 };
                 await _categoryDbRepository.InsertOneAsync(category);
                 Console.WriteLine(string.Format("Category new: Slug: {0}, Title: {1}", category.Slug, category.Titlte));
@@ -85,15 +109,19 @@ namespace DotnetCrawler.Core
                             isReCrawleSmall &&
                             category != null &&
                             !string.IsNullOrEmpty(category.UrlListPostPagingLatest)
-                    ? category.UrlListPostPagingLatest : Request.CategorySetting.Url;
+                    ? category.UrlListPostPagingLatest : categoryModel.Url;
             var htmlDocumentCategory = await Downloader.Download(urlCategoryCrawleFirst);
 
-            // get list post
-            GetPost(linkReader, htmlDocumentCategory, category, isReCrawleSmall);
-            Console.WriteLine(string.Format("Crawler Done {0}", DateTime.Now));
+            // add to post queue
+            _rabitMQProducer.SendMessage<PostMessage>(QueueName.QueuePostName, new PostMessage() {
+                LinkReader = linkReader,
+                HtmlDocumentCategory = htmlDocumentCategory,
+                Category = category,
+                IsReCrawleSmall = isReCrawleSmall
+            });
         }
 
-        private async void GetPost(
+        public async void JobPost(
             DotnetCrawlerPageLinkReader linkReader,
             HtmlDocument htmlDocumentCategory,
             CategoryDb category,

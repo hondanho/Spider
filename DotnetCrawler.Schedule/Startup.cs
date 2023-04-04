@@ -25,10 +25,11 @@ using System.Threading;
 using System;
 using WordPressPCL.Models;
 using DotnetCrawler.API.RabitMQ;
-using DotnetCrawler.Data.Model.RabitMQ;
 using RabbitMQ.Client;
+using DotnetCrawler.Data.Model;
 
-namespace DotnetCrawler.Api {
+namespace DotnetCrawler.Api
+{
     public class Startup {
         public Startup(IConfiguration configuration) {
             Configuration = configuration;

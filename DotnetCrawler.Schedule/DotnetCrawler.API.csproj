@@ -5,8 +5,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Hangfire" Version="1.7.33" />
-    <PackageReference Include="Hangfire.Core" Version="1.7.33" />
     <PackageReference Include="Hangfire.Mongo" Version="1.9.2" />
     <PackageReference Include="MongoDB.Driver" Version="2.19.1" />
     <PackageReference Include="RabbitMQ.Client" Version="6.5.0" />

@@ -1,30 +1,30 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace DotnetCrawler.Data.Setting {
 
     public class CategorySetting {
-        public long TimeOut { get; set; }
 
+        public List<CategoryModel> CategoryModels;
+        public string LinkPostSelector { get; set; }
+        public string PagingSelector { get; set; }
+    }
+
+    public class CategoryModel
+    {
         /// <summary>
         /// Set category name
         /// </summary>
-        [Required]
         public string Titlte { get; set; }
-        
+
         /// <summary>
         /// Url contains list post
         /// </summary>
-        [Required]
         public string Url { get; set; }
 
         /// <summary>
         /// Slug to db, if not exist then create it
         /// </summary>
         public string Slug { get; set; }
-
-        [Required]
-        public string LinkPostSelector { get; set; }
-        [Required]
-        public string PagingSelector { get; set; }
     }
 }

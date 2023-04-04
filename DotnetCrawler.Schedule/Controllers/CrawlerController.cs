@@ -1,5 +1,6 @@
 ﻿using DotnetCrawler.Api.Service;
 using DotnetCrawler.API.RabitMQ;
+using DotnetCrawler.Core.RabitMQ;
 using DotnetCrawler.Data.ModelDb;
 using DotnetCrawler.Data.Repository;
 using DotnetCrawler.Data.Setting;

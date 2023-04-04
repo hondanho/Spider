@@ -1,5 +1,4 @@
-﻿using DotnetCrawler.Data.Model.RabitMQ;
-using Newtonsoft.Json;
+﻿using System.Text.Json;
 using RabbitMQ.Client;
 using Rabbit.Common.Display;
 using System.Diagnostics;
@@ -12,14 +11,21 @@ using RabbitMQ.Client.Events;
 using System.Threading;
 using System;
 using DotnetCrawler.Data.Constants;
+using DotnetCrawler.Data.Model;
+using DotnetCrawler.Data.Setting;
 
-namespace DotnetCrawler.API.RabitMQ
+namespace DotnetCrawler.Core.RabitMQ
 {
     public class RabitMQConsumer : IHostedService
     {
         private IConnection _connection;
         private ConnectionFactory _connectionFactory;
-        public RabitMQConsumer(IRabitMQSettings rabitMQSettings)
+        private readonly ICrawlerCore<CategorySetting> _crawlerCore;
+
+        public RabitMQConsumer(
+            IRabitMQSettings rabitMQSettings,
+            ICrawlerCore<CategorySetting> dotnetCrawlerCore
+            )
         {
             _connectionFactory = new ConnectionFactory
             {
@@ -29,10 +35,43 @@ namespace DotnetCrawler.API.RabitMQ
             };
 
             _connection = _connectionFactory.CreateConnection();
+            _crawlerCore = dotnetCrawlerCore;
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
+            // listener post
+            var channelPost = _connection.CreateModel();
+            channelPost.QueueDeclare(
+                QueueName.QueuePostName,
+                durable: false,
+                exclusive: false,
+                autoDelete: false
+            );
+            var consumer = new EventingBasicConsumer(channelPost);
+            consumer.Received += (model, ea) =>
+            {
+                var body = ea.Body.ToArray();
+                var postmessage = Encoding.UTF8.GetString(body);
+                var message = JsonSerializer.Deserialize<PostMessage>(postmessage);
+
+                _crawlerCore.JobPost(
+                    message.LinkReader, 
+                    message.HtmlDocumentCategory, 
+                    message.Category, 
+                    message.IsReCrawleSmall
+                );
+
+                DisplayInfo<PostMessage>
+                .For(message)
+                .SetExchange("")
+                .SetQueue(QueueName.QueuePostName)
+                .SetRoutingKey(QueueName.QueuePostName)
+                .SetVirtualHost(_connectionFactory.VirtualHost)
+                .Display(Color.Yellow);
+            };
+            channelPost.BasicConsume(queue: QueueName.QueuePostName, autoAck: true, consumer: consumer);
+
             // listener chap
             var channelChap = _connection.CreateModel();
             channelChap.QueueDeclare(QueueName.QueueChapName, durable: false,

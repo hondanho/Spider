@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace DotnetCrawler.Data.Model.RabitMQ
+namespace DotnetCrawler.Data.Model
 {
     public interface IRabitMQSettings
     {
