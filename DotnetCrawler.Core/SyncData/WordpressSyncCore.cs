@@ -90,7 +90,6 @@ namespace DotnetCrawler.Core
             var categorysWPNew = await WordPressClient.Categories.GetAllAsync();
             foreach (var categoryDb in categorysDb)
             {
-                var category
             }
 
 

@@ -15,7 +15,6 @@ namespace DotnetCrawler.Api.Service
         Task ReCrawlerSmall();
         Task UpdateStatusSite(SiteConfigDb siteConfigDb, StatusCrawler statusCrawler);
 
-        [Queue("my-queue")]
         Task TaskD(int number, int time);
     }
 }

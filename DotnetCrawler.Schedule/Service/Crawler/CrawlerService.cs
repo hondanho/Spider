@@ -131,13 +131,12 @@ namespace DotnetCrawler.Api.Service
             }
         }
 
-        [Queue("my-queue")]
         public async Task TaskD(int number, int time)
         {
             Console.WriteLine($"Welcome Task {number} waitting {time}s");
             while (time > 0)
             {
-                Console.WriteLine($"Doing Task {number} time {time}");
+                //Console.WriteLine($"Doing Task {number} time {time}");
                 await Task.Delay(1000);
                 time--;
             }

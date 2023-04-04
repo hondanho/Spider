@@ -6,6 +6,7 @@ using Hangfire;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System;
 using System.Threading.Tasks;
 
 namespace DotnetCrawler.Api.Controllers
@@ -75,19 +76,26 @@ namespace DotnetCrawler.Api.Controllers
 
         [HttpPost]
         [Route("test")]
-        public async Task<IActionResult> Test()
+        public async Task<IActionResult> Test(int number)
         {
-
-            //client.Create(() => _crawlerService.TaskD(3, 5));
-            //client.Create(() => _crawlerService.TaskD(4, 5));
-            BackgroundJob.Enqueue(() => _crawlerService.TaskD(5, 5));
-            BackgroundJob.Enqueue(() => _crawlerService.TaskD(6, 5));
-            BackgroundJob.Enqueue(() => _crawlerService.TaskD(7, 5));
-            BackgroundJob.Enqueue(() => _crawlerService.TaskD(8, 5));
-            BackgroundJob.Enqueue(() => _crawlerService.TaskD(9, 5));
-            BackgroundJob.Enqueue(() => _crawlerService.TaskD(10, 5));
+            BackgroundJob.Enqueue(() => _crawlerService.TaskD(number, 5));
+            //var jobId1 = BackgroundJob.Enqueue(() => _crawlerService.TaskD(1, 5));
+            //var jobId2 = BackgroundJob.ContinueJobWith(jobId1 , () => _crawlerService.TaskD(2, 5));
+            //var jobId3 =  BackgroundJob.ContinueJobWith(jobId2, () => _crawlerService.TaskD(3, 5));
 
             return Ok($"Recurring Job Scheduled. Invoice will be mailed Monthly for job 1");
+        }
+
+        [HttpPost]
+        [Route("test2")]
+        public async Task<IActionResult> Test2() {
+
+            // create a new instance of BackgroundJobClient
+            var client = new BackgroundJobClient();
+
+            // get all jobs
+
+            return Ok($"Recurring Job Scheduled. Invoice will be mailed Monthly for job 2");
         }
     }
 }
