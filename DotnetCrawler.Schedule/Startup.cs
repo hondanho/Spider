@@ -24,6 +24,9 @@ using System.Collections.Generic;
 using System.Threading;
 using System;
 using WordPressPCL.Models;
+using DotnetCrawler.API.RabitMQ;
+using DotnetCrawler.Data.Model.RabitMQ;
+using RabbitMQ.Client;
 
 namespace DotnetCrawler.Api {
     public class Startup {
@@ -65,7 +68,7 @@ namespace DotnetCrawler.Api {
             });
 
             services.AddHangfireServer();
-
+            services.AddHostedService<RabitMQConsumer>();
             services.AddControllers();
             services.AddSwaggerGen();
             services.AddSwaggerGen(c => {
@@ -75,8 +78,11 @@ namespace DotnetCrawler.Api {
             services.Configure<MongoDbSettings>(Configuration.GetSection("MongoDbSettings"));
             services.AddSingleton<IMongoDbSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<MongoDbSettings>>().Value);
             services.AddScoped(typeof(IMongoRepository<>), typeof(MongoRepository<>));
+            services.Configure<RabitMQSettings>(Configuration.GetSection("RabitMQSettings"));
+            services.AddSingleton<IRabitMQSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<RabitMQSettings>>().Value);
             services.AddScoped<ICrawlerService, CrawlerService>();
             services.AddScoped<IWordpressSyncCore, WordpressSyncCore>();
+            services.AddScoped<IRabitMQProducer, RabitMQProducer>();
             services.AddScoped<IWordpressService, WordpressService>();
             services.AddScoped(typeof(ICrawlerCore<>), typeof(CrawlerCore<>));
             services.Configure<FormOptions>(options => {
@@ -84,8 +90,6 @@ namespace DotnetCrawler.Api {
                 options.MultipartBodyLengthLimit = int.MaxValue;
                 options.MultipartHeadersLengthLimit = int.MaxValue;
             });
-
-            // Configure the Hangfire server options
             services.Configure<BackgroundJobServerOptions>(options => {
                 options.WorkerCount = 1;
             });

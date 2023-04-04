@@ -1,4 +1,5 @@
 ﻿using DotnetCrawler.Api.Service;
+using DotnetCrawler.API.RabitMQ;
 using DotnetCrawler.Data.ModelDb;
 using DotnetCrawler.Data.Repository;
 using DotnetCrawler.Data.Setting;
@@ -19,6 +20,7 @@ namespace DotnetCrawler.Api.Controllers
         private readonly ICrawlerService _crawlerService;
         private readonly ILogger<CrawlerController> _logger;
         private readonly IMongoRepository<SiteConfigDb> _siteConfigDbRepository;
+        private readonly IRabitMQProducer _rabitMQProducer;
 
         private int scheduleHourReCrawlerBig;
         private int scheduleHourReCrawlerSmall;
@@ -27,6 +29,7 @@ namespace DotnetCrawler.Api.Controllers
             IMongoRepository<SiteConfigDb> siteConfigDbRepository,
             ICrawlerService crawlerService,
             IConfiguration configuration,
+            IRabitMQProducer rabitMQProducer,
             ILogger<CrawlerController> logger)
         {
             _logger = logger;
@@ -34,8 +37,8 @@ namespace DotnetCrawler.Api.Controllers
             _siteConfigDbRepository = siteConfigDbRepository;
             scheduleHourReCrawlerSmall = configuration.GetValue<int>("Setting:ScheduleHourReCrawlerSmall");
             scheduleHourReCrawlerBig = configuration.GetValue<int>("Setting:ScheduleHourReCrawlerBig");
+            _rabitMQProducer = rabitMQProducer;
         }
-
 
         [HttpPost]
         [Route("crawler-all")]
@@ -88,8 +91,8 @@ namespace DotnetCrawler.Api.Controllers
 
         [HttpPost]
         [Route("test2")]
-        public async Task<IActionResult> Test2() {
-
+        public async Task<IActionResult> Test2(string thuan) {
+            _rabitMQProducer.SendChapMessage<string>("hello t la thuan day" + thuan);
             // create a new instance of BackgroundJobClient
             var client = new BackgroundJobClient();
 

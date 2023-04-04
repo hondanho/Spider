@@ -14,6 +14,7 @@ namespace DotnetCrawler.Data.Setting {
         public string Document { get; set; }
         public string Domain { get; set; }
         public List<string> Proxys { get; set; }
+        public string UserAgent { get; set; }   
         public string WordpressUriApi { get; set; }
         public string WordpressUserName { get; set; }
         public string WordpressPassword { get; set; }

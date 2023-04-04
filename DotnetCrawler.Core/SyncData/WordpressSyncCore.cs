@@ -88,10 +88,12 @@ namespace DotnetCrawler.Core
 
             // sync all post in category
             var categorysWPNew = await WordPressClient.Categories.GetAllAsync();
-            foreach (var categoryDb in categorysDb)
-            {
-            }
+            var allPost = await WordPressClient.Posts.GetAllAsync();
 
+            await WordPressClient.Posts.CreateAsync(new Post()
+            {
+                Title = new Title("test 44/4")
+            });
 
             //if (category != null)
             //{

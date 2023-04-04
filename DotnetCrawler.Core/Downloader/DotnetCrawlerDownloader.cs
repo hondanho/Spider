@@ -14,6 +14,7 @@ namespace DotnetCrawler.Downloader
         public string DownloadPath { get; set; }
         private string _localFilePath;
         public List<string> Proxys { get; set; }
+        public string UserAgent { get; set; }
         private WebProxy _webProxy;
 
         public DotnetCrawlerDownloader()
@@ -50,6 +51,7 @@ namespace DotnetCrawler.Downloader
                     var htmlDocument = new HtmlDocument();
                     using (WebClient client = new WebClient())
                     {
+                        client.Headers.Add(UserAgent);
                         client.Proxy = _webProxy;
                         string htmlCode = await client.DownloadStringTaskAsync(crawlUrl);
                         htmlDocument.LoadHtml(htmlCode);

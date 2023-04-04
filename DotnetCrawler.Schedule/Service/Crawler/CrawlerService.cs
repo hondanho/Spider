@@ -48,21 +48,23 @@ namespace DotnetCrawler.Api.Service
             siteConfig.SystemStatus.Status = StatusCrawler.CRAWLER_DOING;
             await _siteConfigDbRepository.ReplaceOneAsync(siteConfig);
         }
-        public async Task Crawler(SiteConfigDb siteConfigDb, StatusCrawler statusCrawler)
+
+        public async Task Crawler(SiteConfigDb siteConfig, StatusCrawler statusCrawler)
         {
             var crawler = _crawlerCore
-                .AddRequest(siteConfigDb)
+                .AddRequest(siteConfig)
                 .AddDownloader(new DotnetCrawlerDownloader
                 {
                     DownloderType = DotnetCrawlerDownloaderType.FromMemory,
                     DownloadPath = @"C:\DotnetCrawlercrawler\",
-                    Proxys = siteConfigDb.BasicSetting.Proxys
+                    Proxys = siteConfig.BasicSetting.Proxys,
+                    UserAgent = siteConfig.BasicSetting.UserAgent
                 })
                 .AddScheduler(new DotnetCrawlerScheduler() { });
             await crawler.Crawle();
 
             // update status site
-            await UpdateStatusSite(siteConfigDb, statusCrawler);
+            await UpdateStatusSite(siteConfig, statusCrawler);
         }
 
         public async Task ReCrawlerSmall()
@@ -120,7 +122,8 @@ namespace DotnetCrawler.Api.Service
                    {
                        DownloderType = DotnetCrawlerDownloaderType.FromMemory,
                        DownloadPath = @"C:\DotnetCrawlercrawler\",
-                       Proxys = siteConfig.BasicSetting.Proxys
+                       Proxys = siteConfig.BasicSetting.Proxys,
+                       UserAgent = siteConfig.BasicSetting.UserAgent
                    })
                    .AddScheduler(new DotnetCrawlerScheduler() { });
                     await crawler.Crawle(isReCrawleSmall);
@@ -143,14 +146,14 @@ namespace DotnetCrawler.Api.Service
             Console.WriteLine($"done task {number}");
         }
 
-        public async Task UpdateStatusSite(SiteConfigDb siteConfigDb, StatusCrawler statusCrawler)
+        public async Task UpdateStatusSite(SiteConfigDb siteConfig, StatusCrawler statusCrawler)
         {
-            siteConfigDb.SystemStatus = new SystemStatus()
+            siteConfig.SystemStatus = new SystemStatus()
             {
                 Status = statusCrawler,
-                JobId = siteConfigDb.SystemStatus?.JobId
+                JobId = siteConfig.SystemStatus?.JobId
             };
-            await _siteConfigDbRepository.ReplaceOneAsync(siteConfigDb);
+            await _siteConfigDbRepository.ReplaceOneAsync(siteConfig);
         }
     }
 }
