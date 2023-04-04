@@ -16,6 +16,7 @@ using MongoDB.Driver;
 using DotnetCrawler.Core;
 using Microsoft.AspNetCore.Http.Features;
 using DotnetCrawler.API.Log;
+using DotnetCrawler.API.Service.Wordpress;
 
 namespace DotnetCrawler.Api
 {
@@ -73,7 +74,9 @@ namespace DotnetCrawler.Api
             services.AddSingleton<IMongoDbSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<MongoDbSettings>>().Value);
             services.AddScoped(typeof(IMongoRepository<>), typeof(MongoRepository<>));
             services.AddScoped<ICrawlerService, CrawlerService>();
-            services.AddScoped(typeof(IDotnetCrawlerCore<>), typeof(DotnetCrawlerCore<>));
+            services.AddScoped<IWordpressSyncCore, WordpressSyncCore>();
+            services.AddScoped<IWordpressService, WordpressService>();
+            services.AddScoped(typeof(ICrawlerCore<>), typeof(CrawlerCore<>));
             services.Configure<FormOptions>(options =>
             {
                 options.ValueLengthLimit = int.MaxValue;

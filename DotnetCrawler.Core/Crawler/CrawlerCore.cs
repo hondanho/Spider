@@ -15,18 +15,18 @@ using System.Threading.Tasks;
 
 namespace DotnetCrawler.Core
 {
-    public class DotnetCrawlerCore<T> : IDotnetCrawlerCore<T> where T : class
+    public class CrawlerCore<T> : ICrawlerCore<T> where T : class
     {
         public SiteConfigDb Request { get; private set; }
         public IDotnetCrawlerDownloader Downloader { get; private set; }
         public IDotnetCrawlerScheduler Scheduler { get; private set; }
-        private int taskCount { get; set; } // Số lượng task cần thực thi
+        private int crawlerTaskCount { get; set; }
 
         private readonly IMongoRepository<PostDb> _postDbRepository;
         private readonly IMongoRepository<ChapDb> _chapDbRepository;
         private readonly IMongoRepository<CategoryDb> _categoryDbRepository;
 
-        public DotnetCrawlerCore(
+        public CrawlerCore(
             IMongoRepository<PostDb> postDbRepository,
             IMongoRepository<ChapDb> chapDbRepository,
             IMongoRepository<CategoryDb> categoryDbRepository,
@@ -35,22 +35,22 @@ namespace DotnetCrawler.Core
             _postDbRepository = postDbRepository;
             _chapDbRepository = chapDbRepository;
             _categoryDbRepository = categoryDbRepository;
-            taskCount = Int32.Parse(configuration.GetValue<string>("Setting:CrawlerTaskCount"));
+            crawlerTaskCount = configuration.GetValue<int>("Setting:CrawlerTaskCount");
         }
 
-        public DotnetCrawlerCore<T> AddRequest(SiteConfigDb request)
+        public CrawlerCore<T> AddRequest(SiteConfigDb request)
         {
             Request = request;
             return this;
         }
 
-        public DotnetCrawlerCore<T> AddDownloader(IDotnetCrawlerDownloader downloader)
+        public CrawlerCore<T> AddDownloader(IDotnetCrawlerDownloader downloader)
         {
             Downloader = downloader;
             return this;
         }
 
-        public DotnetCrawlerCore<T> AddScheduler(IDotnetCrawlerScheduler scheduler)
+        public CrawlerCore<T> AddScheduler(IDotnetCrawlerScheduler scheduler)
         {
             Scheduler = scheduler;
             return this;
@@ -90,6 +90,7 @@ namespace DotnetCrawler.Core
 
             // get list post
             GetPost(linkReader, htmlDocumentCategory, category, isReCrawleSmall);
+            Console.WriteLine(string.Format("Crawler Done {0}", DateTime.Now));
         }
 
         private async void GetPost(
@@ -111,7 +112,7 @@ namespace DotnetCrawler.Core
 
                 Queue<LinkModel> jobQueue = new Queue<LinkModel>(linksPost);
                 int jobCount = jobQueue.Count(); // Số lượng công việc cần thực hiện
-                int counter = Math.Min(taskCount, jobCount); // Đặt giá trị ban đầu cho counter
+                int counter = Math.Min(crawlerTaskCount, jobCount); // Đặt giá trị ban đầu cho counter
                 Task[] tasks = new Task[counter];
                 for (int i = 0; i < counter; i++)
                 {
@@ -126,7 +127,7 @@ namespace DotnetCrawler.Core
                             var isDuplicate = IsDuplicatePost(Request, postServers, linkPost);
                             if (!Request.PostSetting.IsHasChapter && isDuplicate)
                             {
-                                Console.WriteLine(string.Format("Post existed: Title: {1}, Slug: {2}", linkPost.Titlte, linkPost.Slug));
+                                Console.WriteLine(string.Format("Post existed: Title: {1}, Slug: {2}, Date: {3}", linkPost.Titlte, linkPost.Slug, DateTime.Now));
                                 continue;
                             }
 
@@ -145,12 +146,12 @@ namespace DotnetCrawler.Core
                             if (!isDuplicate)
                             {
                                 await _postDbRepository.InsertOneAsync(post);
-                                Console.WriteLine(string.Format("Post new: Id: {0}, Title: {1}, Slug: {2}", post.IdString, post.Titlte, post.Slug));
+                                Console.WriteLine(string.Format("Post new: Id: {0}, Title: {1}, Slug: {2}, Date: {3}", post.IdString, post.Titlte, post.Slug, DateTime.Now));
                             }
                             else
                             {
                                 post.IdString = idPostString;
-                                Console.WriteLine(string.Format("Post existed: Title: {1}, Slug: {2}", post.IdString, linkPost.Titlte, linkPost.Slug));
+                                Console.WriteLine(string.Format("Post existed: Title: {1}, Slug: {2}, Date: {3}", post.IdString, linkPost.Titlte, linkPost.Slug, DateTime.Now));
                             }
 
                             // get info chap
@@ -158,7 +159,6 @@ namespace DotnetCrawler.Core
                             {
                                 GetChap(linkReader, htmlDocumentPost, post);
                             }
-                            Console.WriteLine($"Executing job {linkPost.Url}");
                             await Task.Delay(1000);
                         }
                     });

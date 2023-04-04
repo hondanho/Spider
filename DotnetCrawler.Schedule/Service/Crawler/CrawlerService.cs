@@ -14,12 +14,12 @@ namespace DotnetCrawler.Api.Service
 {
     public class CrawlerService : ICrawlerService
     {
-        private readonly IDotnetCrawlerCore<CategorySetting> _dotnetCrawlerCore;
+        private readonly ICrawlerCore<CategorySetting> _crawlerCore;
         private readonly IMongoRepository<SiteConfigDb> _siteConfigDbRepository;
 
-        public CrawlerService(IDotnetCrawlerCore<CategorySetting> dotnetCrawlerCore, IMongoRepository<SiteConfigDb> siteConfigDbRepository)
+        public CrawlerService(ICrawlerCore<CategorySetting> dotnetCrawlerCore, IMongoRepository<SiteConfigDb> siteConfigDbRepository)
         {
-            _dotnetCrawlerCore = dotnetCrawlerCore;
+            _crawlerCore = dotnetCrawlerCore;
             _siteConfigDbRepository = siteConfigDbRepository;
         }
 
@@ -50,7 +50,7 @@ namespace DotnetCrawler.Api.Service
         }
         public async Task Crawler(SiteConfigDb siteConfigDb, StatusCrawler statusCrawler)
         {
-            var crawler = _dotnetCrawlerCore
+            var crawler = _crawlerCore
                 .AddRequest(siteConfigDb)
                 .AddDownloader(new DotnetCrawlerDownloader
                 {
@@ -114,7 +114,7 @@ namespace DotnetCrawler.Api.Service
                     await UpdateStatusSite(siteConfig, statusCrawler);
 
                     // run recrawler
-                    var crawler = _dotnetCrawlerCore
+                    var crawler = _crawlerCore
                    .AddRequest(siteConfig)
                    .AddDownloader(new DotnetCrawlerDownloader
                    {
@@ -123,14 +123,13 @@ namespace DotnetCrawler.Api.Service
                        Proxys = siteConfig.BasicSetting.Proxys
                    })
                    .AddScheduler(new DotnetCrawlerScheduler() { });
-                    await crawler.Crawle();
+                    await crawler.Crawle(isReCrawleSmall);
 
                     // update status to done
                     await UpdateStatusSite(siteConfig, StatusCrawler.DATHUTHAP);
                 }
             }
         }
-
 
         [Queue("my-queue")]
         public async Task TaskD(int number, int time)
@@ -147,7 +146,11 @@ namespace DotnetCrawler.Api.Service
 
         public async Task UpdateStatusSite(SiteConfigDb siteConfigDb, StatusCrawler statusCrawler)
         {
-            siteConfigDb.SystemStatus.Status = statusCrawler;
+            siteConfigDb.SystemStatus = new SystemStatus()
+            {
+                Status = statusCrawler,
+                JobId = siteConfigDb.SystemStatus?.JobId
+            };
             await _siteConfigDbRepository.ReplaceOneAsync(siteConfigDb);
         }
     }

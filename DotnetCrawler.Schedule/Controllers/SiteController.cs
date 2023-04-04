@@ -1,6 +1,7 @@
 ﻿using DotnetCrawler.Api.Service;
 using DotnetCrawler.Data.ModelDb;
 using DotnetCrawler.Data.Repository;
+using DotnetCrawler.Data.Setting;
 using Hangfire;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -42,7 +43,10 @@ namespace DotnetCrawler.Api.Controllers
         [RequestSizeLimit(2147483648)] // e.g. 2 GB request limit
         public async Task CreateSite([FromBody] SiteConfigDb siteConfigDb)
         {
-            siteConfigDb.SystemStatus.Status = Data.Setting.StatusCrawler.DEFAULT;
+            siteConfigDb.SystemStatus = new SystemStatus()
+            {
+                Status = StatusCrawler.DEFAULT
+            };
             await _siteConfigDbRepository.InsertOneAsync(siteConfigDb);
             if (siteConfigDb.BasicSetting.IsThuThap)
             {
