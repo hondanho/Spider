@@ -8,6 +8,5 @@ namespace DotnetCrawler.Data.Models
     {
         public string Titlte { get; set; }
         public string Slug { get; set; }
-        public string UrlListPostPagingLatest { get; set; }
     }
 }

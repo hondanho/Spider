@@ -1,4 +1,5 @@
 ﻿
+using DotnetCrawler.Core.RabitMQ;
 using DotnetCrawler.Data.ModelDb;
 using DotnetCrawler.Data.Models;
 using DotnetCrawler.Downloader;
@@ -13,11 +14,12 @@ namespace DotnetCrawler.Core
         CrawlerCore<T> AddRequest(SiteConfigDb request);
         CrawlerCore<T> AddDownloader(IDotnetCrawlerDownloader downloader);
         CrawlerCore<T> AddScheduler(IDotnetCrawlerScheduler scheduler);
-        void JobPost(
-            DotnetCrawlerPageLinkReader linkReader,
-            HtmlDocument htmlDocumentCategory,
-            CategoryDb category,
-            bool isReCrawleSmall);
         Task Crawle(bool isReCrawleSmall = false);
-    }
+
+
+        void JobCategory(CategoryMessage categoryMessage);
+        void JobPost(PostMessage post);
+        void JobPostDetail(PostDetailMessage post);
+        void JobChap(ChapMessage chapMessage);
+        }
 }

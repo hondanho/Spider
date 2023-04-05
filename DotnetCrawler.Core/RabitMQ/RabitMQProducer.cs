@@ -8,13 +8,13 @@ using System.Collections.Immutable;
 using System.Threading.Tasks;
 using DotnetCrawler.Data.Constants;
 using DotnetCrawler.Data.Model;
+using System;
 
 namespace DotnetCrawler.Core.RabitMQ
 {
     public interface IRabitMQProducer
     {
         void SendMessage<T>(string queue, T message);
-        void SendChapMessage<T>(T message);
     }
 
     public class RabitMQProducer : IRabitMQProducer
@@ -38,6 +38,7 @@ namespace DotnetCrawler.Core.RabitMQ
         {
             var exchangeName = "";
             var channel = _connection.CreateModel();
+
             channel.QueueDeclare(
                 queue,
                 durable: false,
@@ -53,28 +54,6 @@ namespace DotnetCrawler.Core.RabitMQ
                 .SetExchange(exchangeName)
                 .SetQueue(queue)
                 .SetRoutingKey(queue)
-                .SetVirtualHost(_connectionFactory.VirtualHost)
-                .Display(Color.Cyan);
-        }
-        public void SendChapMessage<T>(T message)
-        {
-            var exchangeName = "";
-            var channel = _connection.CreateModel();
-            channel.QueueDeclare(
-                QueueName.QueueChapName, 
-                durable: false, 
-                exclusive: false, 
-                autoDelete: false, 
-                arguments: ImmutableDictionary<string, object>.Empty);
-            var json = JsonConvert.SerializeObject(message);
-            var body = Encoding.UTF8.GetBytes(json);
-            channel.BasicPublish(exchange: exchangeName, routingKey: QueueName.QueueChapName, body: body);
-
-            DisplayInfo<T>
-                .For(message)
-                .SetExchange(exchangeName)
-                .SetQueue(QueueName.QueueChapName)
-                .SetRoutingKey(QueueName.QueueChapName)
                 .SetVirtualHost(_connectionFactory.VirtualHost)
                 .Display(Color.Cyan);
         }

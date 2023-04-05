@@ -29,12 +29,6 @@ namespace DotnetCrawler.Api.Service
             var siteConfig = await _siteConfigDbRepository.FindByIdAsync(siteId);
             if (siteConfig == null) return;
 
-            // remove all job running
-            if (!string.IsNullOrEmpty(siteConfig.SystemStatus.JobId))
-            {
-                BackgroundJob.Delete(siteConfig.SystemStatus.JobId);
-            }
-
             // crawler
             var newSiteConfig = new SiteConfigDb()
             {
@@ -43,13 +37,10 @@ namespace DotnetCrawler.Api.Service
                 PostSetting = siteConfig.PostSetting,
                 ChapSetting = siteConfig.ChapSetting
             };
-            var jobId = BackgroundJob.Enqueue(() => Crawler(newSiteConfig, StatusCrawler.DATHUTHAP));
-            siteConfig.SystemStatus.JobId = jobId;
-            siteConfig.SystemStatus.Status = StatusCrawler.CRAWLER_DOING;
-            await _siteConfigDbRepository.ReplaceOneAsync(siteConfig);
+            BackgroundJob.Enqueue(() => Crawler(newSiteConfig));
         }
 
-        public async Task Crawler(SiteConfigDb siteConfig, StatusCrawler statusCrawler)
+        public async Task Crawler(SiteConfigDb siteConfig)
         {
             var crawler = _crawlerCore
                 .AddRequest(siteConfig)
@@ -62,59 +53,34 @@ namespace DotnetCrawler.Api.Service
                 })
                 .AddScheduler(new DotnetCrawlerScheduler() { });
             await crawler.Crawle();
-
-            // update status site
-            await UpdateStatusSite(siteConfig, statusCrawler);
         }
 
         public async Task ReCrawlerSmall()
         {
-            var siteConfigs = _siteConfigDbRepository.FilterBy(scf =>
-                scf.BasicSetting.IsThuThap &&
-                scf.SystemStatus.Status != StatusCrawler.CRAWLER_DOING &&
-                scf.SystemStatus.Status != StatusCrawler.RECRAWLER_BIG_DOING &&
-                scf.SystemStatus.Status != StatusCrawler.RECRAWLER_SMALL_DOING
-            ).ToList();
-            await CrawlerListSite(siteConfigs, StatusCrawler.RECRAWLER_SMALL_DOING, isReCrawleSmall: true);
+            var siteConfigs = _siteConfigDbRepository.FilterBy(scf => scf.BasicSetting.IsThuThapLai).ToList();
+            await CrawlerListSite(siteConfigs, isReCrawleSmall: true);
         }
 
         public async Task CrawlerAll()
         {
-            var siteConfigs = _siteConfigDbRepository.FilterBy(scf =>
-                scf.BasicSetting.IsThuThap &&
-                scf.SystemStatus.Status == StatusCrawler.DEFAULT
-            ).ToList();
-            await CrawlerListSite(siteConfigs, StatusCrawler.RECRAWLER_BIG_DOING);
+            var siteConfigs = _siteConfigDbRepository.FilterBy(scf => scf.BasicSetting.IsThuThap).ToList();
+            await CrawlerListSite(siteConfigs);
         }
 
         public async Task ReCrawlerBig()
         {
-            var siteConfigs = _siteConfigDbRepository.FilterBy(scf =>
-                scf.BasicSetting.IsThuThap &&
-                scf.SystemStatus.Status != StatusCrawler.CRAWLER_DOING &&
-                scf.SystemStatus.Status != StatusCrawler.RECRAWLER_BIG_DOING
-            ).ToList();
-            await CrawlerListSite(siteConfigs, StatusCrawler.RECRAWLER_BIG_DOING);
+            var siteConfigs = _siteConfigDbRepository.FilterBy(scf => scf.BasicSetting.IsThuThap).ToList();
+            await CrawlerListSite(siteConfigs);
         }
 
         private async Task CrawlerListSite(
             List<SiteConfigDb> siteConfigs,
-            StatusCrawler statusCrawler,
             bool isReCrawleSmall = false)
         {
             if (siteConfigs.Any())
             {
                 foreach (var siteConfig in siteConfigs)
                 {
-                    // remove all job running
-                    if (!string.IsNullOrEmpty(siteConfig.SystemStatus.JobId))
-                    {
-                        BackgroundJob.Delete(siteConfig.SystemStatus.JobId);
-                    }
-
-                    // update status to doing
-                    await UpdateStatusSite(siteConfig, statusCrawler);
-
                     // run recrawler
                     var crawler = _crawlerCore
                    .AddRequest(siteConfig)
@@ -127,9 +93,6 @@ namespace DotnetCrawler.Api.Service
                    })
                    .AddScheduler(new DotnetCrawlerScheduler() { });
                     await crawler.Crawle(isReCrawleSmall);
-
-                    // update status to done
-                    await UpdateStatusSite(siteConfig, StatusCrawler.DATHUTHAP);
                 }
             }
         }
@@ -144,16 +107,6 @@ namespace DotnetCrawler.Api.Service
                 time--;
             }
             Console.WriteLine($"done task {number}");
-        }
-
-        public async Task UpdateStatusSite(SiteConfigDb siteConfig, StatusCrawler statusCrawler)
-        {
-            siteConfig.SystemStatus = new SystemStatus()
-            {
-                Status = statusCrawler,
-                JobId = siteConfig.SystemStatus?.JobId
-            };
-            await _siteConfigDbRepository.ReplaceOneAsync(siteConfig);
         }
     }
 }

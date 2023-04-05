@@ -5,7 +5,7 @@ namespace DotnetCrawler.Data.Setting {
 
     public class CategorySetting {
 
-        public List<CategoryModel> CategoryModels;
+        public List<CategoryModel> CategoryModels { get; set; }
         public string LinkPostSelector { get; set; }
         public string PagingSelector { get; set; }
     }

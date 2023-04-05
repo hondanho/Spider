@@ -24,9 +24,13 @@ using System.Collections.Generic;
 using System.Threading;
 using System;
 using WordPressPCL.Models;
-using DotnetCrawler.API.RabitMQ;
 using RabbitMQ.Client;
 using DotnetCrawler.Data.Model;
+using DotnetCrawler.Core.RabitMQ;
+using MongoDB.Bson.IO;
+using MongoDB.Bson.Serialization.Serializers;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson;
 
 namespace DotnetCrawler.Api
 {
@@ -62,37 +66,34 @@ namespace DotnetCrawler.Api
                     CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.TailNotificationsCollection
                 })
             );
-
-            // Add the processing server as IHostedService
             services.AddHangfireServer(serverOptions => {
                 serverOptions.ServerName = "Hangfire.Mongo server 1";
             });
 
-            services.AddHangfireServer();
             services.AddHostedService<RabitMQConsumer>();
             services.AddControllers();
-            services.AddSwaggerGen();
+
             services.AddSwaggerGen(c => {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Crawler Site", Version = "v1" });
             });
 
             services.Configure<MongoDbSettings>(Configuration.GetSection("MongoDbSettings"));
             services.AddSingleton<IMongoDbSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<MongoDbSettings>>().Value);
-            services.AddScoped(typeof(IMongoRepository<>), typeof(MongoRepository<>));
+            services.AddSingleton(typeof(IMongoRepository<>), typeof(MongoRepository<>));
+
             services.Configure<RabitMQSettings>(Configuration.GetSection("RabitMQSettings"));
             services.AddSingleton<IRabitMQSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<RabitMQSettings>>().Value);
+            services.AddSingleton<IRabitMQProducer, RabitMQProducer>();
+
+            services.AddSingleton(typeof(ICrawlerCore<>), typeof(CrawlerCore<>));
             services.AddScoped<ICrawlerService, CrawlerService>();
             services.AddScoped<IWordpressSyncCore, WordpressSyncCore>();
-            services.AddScoped<IRabitMQProducer, RabitMQProducer>();
             services.AddScoped<IWordpressService, WordpressService>();
-            services.AddScoped(typeof(ICrawlerCore<>), typeof(CrawlerCore<>));
+
             services.Configure<FormOptions>(options => {
                 options.ValueLengthLimit = int.MaxValue;
                 options.MultipartBodyLengthLimit = int.MaxValue;
                 options.MultipartHeadersLengthLimit = int.MaxValue;
-            });
-            services.Configure<BackgroundJobServerOptions>(options => {
-                options.WorkerCount = 1;
             });
         }
 
@@ -115,4 +116,3 @@ namespace DotnetCrawler.Api
         }
     }
 }
-

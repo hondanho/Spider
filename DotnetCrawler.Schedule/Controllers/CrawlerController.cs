@@ -1,5 +1,4 @@
 ﻿using DotnetCrawler.Api.Service;
-using DotnetCrawler.API.RabitMQ;
 using DotnetCrawler.Core.RabitMQ;
 using DotnetCrawler.Data.ModelDb;
 using DotnetCrawler.Data.Repository;
@@ -78,28 +77,28 @@ namespace DotnetCrawler.Api.Controllers
         }
 
 
-        [HttpPost]
-        [Route("test")]
-        public async Task<IActionResult> Test(int number)
-        {
-            BackgroundJob.Enqueue(() => _crawlerService.TaskD(number, 5));
-            //var jobId1 = BackgroundJob.Enqueue(() => _crawlerService.TaskD(1, 5));
-            //var jobId2 = BackgroundJob.ContinueJobWith(jobId1 , () => _crawlerService.TaskD(2, 5));
-            //var jobId3 =  BackgroundJob.ContinueJobWith(jobId2, () => _crawlerService.TaskD(3, 5));
+        //[HttpPost]
+        //[Route("test")]
+        //public async Task<IActionResult> Test(int number)
+        //{
+        //    BackgroundJob.Enqueue(() => _crawlerService.TaskD(number, 5));
+        //    //var jobId1 = BackgroundJob.Enqueue(() => _crawlerService.TaskD(1, 5));
+        //    //var jobId2 = BackgroundJob.ContinueJobWith(jobId1 , () => _crawlerService.TaskD(2, 5));
+        //    //var jobId3 =  BackgroundJob.ContinueJobWith(jobId2, () => _crawlerService.TaskD(3, 5));
 
-            return Ok($"Recurring Job Scheduled. Invoice will be mailed Monthly for job 1");
-        }
+        //    return Ok($"Recurring Job Scheduled. Invoice will be mailed Monthly for job 1");
+        //}
 
-        [HttpPost]
-        [Route("test2")]
-        public async Task<IActionResult> Test2(string thuan) {
-            _rabitMQProducer.SendChapMessage<string>("hello t la thuan day" + thuan);
-            // create a new instance of BackgroundJobClient
-            var client = new BackgroundJobClient();
+        //[HttpPost]
+        //[Route("test2")]
+        //public async Task<IActionResult> Test2(string thuan) {
+        //    _rabitMQProducer.SendChapMessage<string>("hello t la thuan day" + thuan);
+        //    // create a new instance of BackgroundJobClient
+        //    var client = new BackgroundJobClient();
 
-            // get all jobs
+        //    // get all jobs
 
-            return Ok($"Recurring Job Scheduled. Invoice will be mailed Monthly for job 2");
-        }
+        //    return Ok($"Recurring Job Scheduled. Invoice will be mailed Monthly for job 2");
+        //}
     }
 }
