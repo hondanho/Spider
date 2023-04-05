@@ -15,6 +15,9 @@ using DotnetCrawler.Data.Model;
 using DotnetCrawler.Data.Setting;
 using Hangfire;
 using Newtonsoft.Json.Linq;
+using DotnetCrawler.Data.ModelDb;
+using DotnetCrawler.Downloader;
+using Amazon.Runtime.Internal;
 
 namespace DotnetCrawler.Core.RabitMQ
 {
@@ -22,11 +25,11 @@ namespace DotnetCrawler.Core.RabitMQ
     {
         private IConnection _connection;
         private ConnectionFactory _connectionFactory;
-        private readonly ICrawlerCore<CategorySetting> _crawlerCore;
+        private readonly ICrawlerCore<SiteConfigDb> _crawlerCore;
 
         public RabitMQConsumer(
             IRabitMQSettings rabitMQSettings,
-            ICrawlerCore<CategorySetting> dotnetCrawlerCore
+            ICrawlerCore<SiteConfigDb> dotnetCrawlerCore
             )
         {
             _connectionFactory = new ConnectionFactory
@@ -68,6 +71,7 @@ namespace DotnetCrawler.Core.RabitMQ
                 var bodyString = Encoding.UTF8.GetString(body);
                 if (!string.IsNullOrEmpty(bodyString)) {
                     var message = JsonSerializer.Deserialize<CategoryMessage>(bodyString);
+                    message.BaseMessage = new BaseMessage(message.SiteConfigDb);
 
                     BackgroundJob.Enqueue(() => _crawlerCore.JobCategory(message));
 
@@ -98,6 +102,7 @@ namespace DotnetCrawler.Core.RabitMQ
 
                 if(!string.IsNullOrEmpty(bodyString)) {
                     var message = JsonSerializer.Deserialize<PostMessage>(bodyString);
+                    message.BaseMessage = new BaseMessage(message.SiteConfigDb);
                     BackgroundJob.Enqueue(() => _crawlerCore.JobPost(message));
 
                     DisplayInfo<PostMessage>
@@ -127,6 +132,7 @@ namespace DotnetCrawler.Core.RabitMQ
 
                 if(!string.IsNullOrEmpty(bodyString)) {
                     var message = JsonSerializer.Deserialize<PostDetailMessage>(bodyString);
+                    message.BaseMessage = new BaseMessage(message.SiteConfigDb);
                     BackgroundJob.Enqueue(() => _crawlerCore.JobPostDetail(message));
 
                     DisplayInfo<PostDetailMessage>
@@ -157,6 +163,7 @@ namespace DotnetCrawler.Core.RabitMQ
 
                 if(!string.IsNullOrEmpty(bodyString)) {
                     var message = JsonSerializer.Deserialize<ChapMessage>(bodyString);
+                    message.BaseMessage = new BaseMessage(message.SiteConfigDb);
                     BackgroundJob.Enqueue(() => _crawlerCore.JobChap(message));
 
                     DisplayInfo<ChapMessage>

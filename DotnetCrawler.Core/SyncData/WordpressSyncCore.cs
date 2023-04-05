@@ -97,7 +97,7 @@ namespace DotnetCrawler.Core
 
             //if (category != null)
             //{
-            //    var listPostMongo = _postDbRepository.FilterBy(pdb => pdb.CategoryId == category.IdString).ToList();
+            //    var listPostMongo = _postDbRepository.FilterBy(pdb => pdb.CategoryId == category.Id).ToList();
             //    if (listPostMongo.Any())
             //    {
             //        foreach (var postDb in listPostMongo)

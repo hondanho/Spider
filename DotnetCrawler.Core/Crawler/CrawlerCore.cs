@@ -25,7 +25,6 @@ namespace DotnetCrawler.Core {
         public SiteConfigDb Request { get; private set; }
         public IDotnetCrawlerDownloader Downloader { get; private set; }
         public IDotnetCrawlerScheduler Scheduler { get; private set; }
-        public DotnetCrawlerPageLinkReader LinkReader { get; private set; }
         private int crawlerTaskCount { get; set; }
 
         private readonly IMongoRepository<PostDb> _postDbRepository;
@@ -48,7 +47,6 @@ namespace DotnetCrawler.Core {
 
         public CrawlerCore<T> AddRequest(SiteConfigDb request) {
             Request = request;
-            LinkReader = new DotnetCrawlerPageLinkReader(Request);
             return this;
         }
 
@@ -90,12 +88,8 @@ namespace DotnetCrawler.Core {
 
                         _rabitMQProducer.SendMessage<CategoryMessage>(QueueName.QueueCategoryName, new CategoryMessage() {
                             CategoryUrl = category.Url,
-                            CategoryIdString = categoryDb.IdString,
-                            BaseMessage = new BaseMessage() {
-                                Request = Request,
-                                Downloader = Downloader,
-                                LinkReader = LinkReader
-                            }
+                            CategoryIdString = categoryDb.Id,
+                            SiteConfigDb = Request
                         });
                     }
                 }
@@ -106,7 +100,7 @@ namespace DotnetCrawler.Core {
         /// Downloader url category, add next url category to category-queue, add url post to post-queue
         /// </summary>
         /// <param name="categoryMessage"></param>
-        public async void JobCategory(CategoryMessage categoryMessage) {
+        public async Task JobCategory(CategoryMessage categoryMessage) {
             SetDocumentDb(categoryMessage.BaseMessage.Request.BasicSetting.Document);
             var request = categoryMessage.BaseMessage.Request;
             var linkReader = categoryMessage.BaseMessage.LinkReader;
@@ -114,9 +108,10 @@ namespace DotnetCrawler.Core {
 
             var categoryUrl = categoryMessage.CategoryUrl;
             var categoryIdString = categoryMessage.CategoryIdString;
+            var domain = categoryMessage.SiteConfigDb.BasicSetting.Domain;
 
             var htmlDocumentCategory = await downloader.Download(categoryUrl);
-            var postUrlModesl = await linkReader.GetPageLinkModel(htmlDocumentCategory, request.CategorySetting.LinkPostSelector);
+            var postUrlModesl = await linkReader.GetPageLinkModel(htmlDocumentCategory, request.CategorySetting.LinkPostSelector, domain);
             if(!postUrlModesl.Any()) {
                 return;
             }
@@ -130,7 +125,7 @@ namespace DotnetCrawler.Core {
                 if(!string.IsNullOrEmpty(postUrlModel.Slug) && !string.IsNullOrEmpty(postUrlModel.Titlte) && !string.IsNullOrEmpty(postUrlModel.Url)) {
                     var isDuplicatePost = IsDuplicatePost(request, postDbServers, postUrlModel);
                     _rabitMQProducer.SendMessage<PostMessage>(QueueName.QueuePostName, new PostMessage() {
-                        BaseMessage = categoryMessage.BaseMessage,
+                        SiteConfigDb = Request,
                         CategoryIdString = categoryIdString,
                         LinkPost = postUrlModel,
                         IsDuplicate = isDuplicatePost,
@@ -142,13 +137,13 @@ namespace DotnetCrawler.Core {
                 }
             }
 
-            var urlCategoryNext = (await linkReader.GetLinks(htmlDocumentCategory, request.CategorySetting.PagingSelector)).FirstOrDefault();
+            var urlCategoryNext = (await linkReader.GetLinks(htmlDocumentCategory, request.CategorySetting.PagingSelector, domain)).FirstOrDefault();
             if(string.IsNullOrEmpty(urlCategoryNext)) {
                 return;
             }
             _rabitMQProducer.SendMessage<CategoryMessage>(QueueName.QueueCategoryName, new CategoryMessage() {
                 CategoryUrl = urlCategoryNext,
-                BaseMessage = categoryMessage.BaseMessage,
+                SiteConfigDb = Request,
                 CategoryIdString = categoryMessage.CategoryIdString
             });
         }
@@ -157,7 +152,7 @@ namespace DotnetCrawler.Core {
         /// Downloader post data and save, add url post to queue
         /// </summary>
         /// <param name="postMessage"></param>
-        public async void JobPost(PostMessage postMessage) {
+        public async Task JobPost(PostMessage postMessage) {
             SetDocumentDb(postMessage.BaseMessage.Request.BasicSetting.Document);
             var request = postMessage.BaseMessage.Request;
             var linkReader = postMessage.BaseMessage.LinkReader;
@@ -180,17 +175,17 @@ namespace DotnetCrawler.Core {
 
             if(!isDuplicate) {
                 await _postDbRepository.InsertOneAsync(post);
-                Console.WriteLine(string.Format("Post new: Id: {0}, Title: {1}, Slug: {2}, Date: {3}", post.IdString, post.Titlte, post.Slug, DateTime.Now));
+                Console.WriteLine(string.Format("Post new: Id: {0}, Title: {1}, Slug: {2}, Date: {3}", post.Id, post.Titlte, post.Slug, DateTime.Now));
             } else {
-                post.IdString = idPostString;
-                Console.WriteLine(string.Format("Post existed: Title: {1}, Slug: {2}, Date: {3}", post.IdString, linkPostModel.Titlte, linkPostModel.Slug, DateTime.Now));
+                post.Id = idPostString;
+                Console.WriteLine(string.Format("Post existed: Title: {1}, Slug: {2}, Date: {3}", post.Id, linkPostModel.Titlte, linkPostModel.Slug, DateTime.Now));
             }
 
             // get info chap
             if(request.PostSetting.IsHasChapter) {
                 _rabitMQProducer.SendMessage<PostDetailMessage>(QueueName.QueuePostDetailName, new PostDetailMessage() {
-                    BaseMessage = postMessage.BaseMessage,
-                    PostIdString = post.IdString,
+                    SiteConfigDb = Request,
+                    PostIdString = post.Id,
                     PostUrl = linkPostModel.Url
                 });
             }
@@ -200,7 +195,7 @@ namespace DotnetCrawler.Core {
         /// Download url post, add next url post to post-detail-queue, add url chap to queue
         /// </summary>
         /// <param name="postDetailMessage"></param>
-        public async void JobPostDetail(PostDetailMessage postDetailMessage) {
+        public async Task JobPostDetail(PostDetailMessage postDetailMessage) {
             SetDocumentDb(postDetailMessage.BaseMessage.Request.BasicSetting.Document);
             var request = postDetailMessage.BaseMessage.Request;
             var linkReader = postDetailMessage.BaseMessage.LinkReader;
@@ -208,9 +203,10 @@ namespace DotnetCrawler.Core {
 
             var postUrl = postDetailMessage.PostUrl;
             var postIdString = postDetailMessage.PostIdString;
+            var domain = postDetailMessage.SiteConfigDb.BasicSetting.Domain;
 
             var htmlDocumentPost = await downloader.Download(postUrl);
-            var chapUrlModesl = await linkReader.GetPageLinkModel(htmlDocumentPost, request.PostSetting.LinkChapSelector);
+            var chapUrlModesl = await linkReader.GetPageLinkModel(htmlDocumentPost, request.PostSetting.LinkChapSelector, domain);
             if(!chapUrlModesl.Any()) {
                 return;
             }
@@ -223,32 +219,32 @@ namespace DotnetCrawler.Core {
             foreach(var chapUrlModel in chapUrlModesl.Take(1)) { //fake
                 if(!string.IsNullOrEmpty(chapUrlModel.Slug) && !string.IsNullOrEmpty(chapUrlModel.Titlte) && !string.IsNullOrEmpty(chapUrlModel.Url)) {
                     var isDuplicateChap = IsDuplicateChap(request, chapDbServers, chapUrlModel);
-                    if (isDuplicateChap) {
+                    if(isDuplicateChap) {
                         Console.WriteLine(string.Format("Chap existed: Title: {0}, Slug: {1}", chapUrlModel.Titlte, chapUrlModel.Slug));
                         continue;
                     }
 
                     _rabitMQProducer.SendMessage<ChapMessage>(QueueName.QueueChapName, new ChapMessage() {
-                        BaseMessage = postDetailMessage.BaseMessage,
+                        SiteConfigDb = Request,
                         PostIdString = postIdString,
                         ChapUrl = chapUrlModel.Url
                     });
                 }
             }
 
-            var postUrlNext = (await linkReader.GetLinks(htmlDocumentPost, request.PostSetting.PagingSelector)).FirstOrDefault();
+            var postUrlNext = (await linkReader.GetLinks(htmlDocumentPost, request.PostSetting.PagingSelector, domain)).FirstOrDefault();
             if(string.IsNullOrEmpty(postUrlNext)) {
                 return;
             }
 
             _rabitMQProducer.SendMessage<PostDetailMessage>(QueueName.QueuePostDetailName, new PostDetailMessage() {
-                BaseMessage = postDetailMessage.BaseMessage,
+                SiteConfigDb = Request,
                 PostIdString = postIdString,
                 PostUrl = postUrlNext
             });
         }
 
-        public async void JobChap(ChapMessage chapMessage) {
+        public async Task JobChap(ChapMessage chapMessage) {
             SetDocumentDb(chapMessage.BaseMessage.Request.BasicSetting.Document);
             var request = chapMessage.BaseMessage.Request;
             var linkReader = chapMessage.BaseMessage.LinkReader;
@@ -256,19 +252,20 @@ namespace DotnetCrawler.Core {
 
             var postIdString = chapMessage.PostIdString;
             var chapUrl = chapMessage.ChapUrl;
+            var domain = chapMessage.SiteConfigDb.BasicSetting.Domain;
 
             var htmlDocumentChap = await downloader.Download(chapUrl);
             var chap = await (new CrawlerProcessor(request).ChapProcess(postIdString, chapUrl, htmlDocumentChap));
             await _chapDbRepository.InsertOneAsync(chap);
             Console.WriteLine(string.Format("Chap new: Title: {0}, Slug: {1}", chap.Titlte, chap.Slug));
 
-            var urlChapNext = (await linkReader.GetLinks(htmlDocumentChap, request.ChapSetting.PagingSelector)).FirstOrDefault();
+            var urlChapNext = (await linkReader.GetLinks(htmlDocumentChap, request.ChapSetting.PagingSelector, domain)).FirstOrDefault();
             if(string.IsNullOrEmpty(urlChapNext)) {
                 return;
             }
 
             _rabitMQProducer.SendMessage<ChapMessage>(QueueName.QueueChapName, new ChapMessage() {
-                BaseMessage = chapMessage.BaseMessage,
+                SiteConfigDb = Request,
                 PostIdString = postIdString,
                 ChapUrl = urlChapNext
             });

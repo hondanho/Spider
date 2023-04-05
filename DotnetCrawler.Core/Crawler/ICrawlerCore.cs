@@ -7,19 +7,17 @@ using DotnetCrawler.Scheduler;
 using HtmlAgilityPack;
 using System.Threading.Tasks;
 
-namespace DotnetCrawler.Core
-{
-    public interface ICrawlerCore<T> where T : class
-    {
+namespace DotnetCrawler.Core {
+    public interface ICrawlerCore<T> where T : class {
         CrawlerCore<T> AddRequest(SiteConfigDb request);
         CrawlerCore<T> AddDownloader(IDotnetCrawlerDownloader downloader);
         CrawlerCore<T> AddScheduler(IDotnetCrawlerScheduler scheduler);
         Task Crawle(bool isReCrawleSmall = false);
 
 
-        void JobCategory(CategoryMessage categoryMessage);
-        void JobPost(PostMessage post);
-        void JobPostDetail(PostDetailMessage post);
-        void JobChap(ChapMessage chapMessage);
-        }
+        Task JobCategory(CategoryMessage categoryMessage);
+        Task JobPost(PostMessage post);
+        Task JobPostDetail(PostDetailMessage post);
+        Task JobChap(ChapMessage chapMessage);
+    }
 }

@@ -51,7 +51,7 @@ namespace DotnetCrawler.Downloader
                     var htmlDocument = new HtmlDocument();
                     using (WebClient client = new WebClient())
                     {
-                        client.Headers.Add(UserAgent);
+                        //client.Headers.Add(UserAgent);
                         client.Proxy = _webProxy;
                         string htmlCode = await client.DownloadStringTaskAsync(crawlUrl);
                         htmlDocument.LoadHtml(htmlCode);

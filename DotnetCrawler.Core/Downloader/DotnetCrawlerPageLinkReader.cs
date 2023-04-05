@@ -16,14 +16,11 @@ namespace DotnetCrawler.Downloader
     /// </summary>
     public class DotnetCrawlerPageLinkReader
     {
-        private readonly SiteConfigDb _request;
-
-        public DotnetCrawlerPageLinkReader(SiteConfigDb request)
+        public DotnetCrawlerPageLinkReader()
         {
-            _request = request;
         }
 
-        public async Task<IEnumerable<string>> GetLinks(HtmlDocument document, string cssSelectorLink, int level = 0)
+        public async Task<IEnumerable<string>> GetLinks(HtmlDocument document, string cssSelectorLink, string domain, int level = 0)
         {
             if (level < 0)
                 throw new ArgumentOutOfRangeException(nameof(level));
@@ -34,7 +31,7 @@ namespace DotnetCrawler.Downloader
                                     string href = a.GetAttributeValue("href", null);
                                     if (!Helper.IsValidURL(href))
                                     {
-                                        return _request.BasicSetting.Domain + href;
+                                        return domain + href;
                                     }
 
                                     return href;
@@ -45,32 +42,32 @@ namespace DotnetCrawler.Downloader
             if (level == 0)
                 return rootUrls;
 
-            var links = await GetAllPagesLinks(rootUrls, cssSelectorLink);
+            var links = await GetAllPagesLinks(rootUrls, cssSelectorLink, domain);
 
             --level;
-            var tasks = await Task.WhenAll(links.Select(link => GetLinks(link, cssSelectorLink, level)));
+            var tasks = await Task.WhenAll(links.Select(link => GetLinks(link, cssSelectorLink, domain, level)));
             return tasks.SelectMany(l => l);
         }
 
 
-        public async Task<IEnumerable<string>> GetLinks(string url, string cssSelectorLink, int level = 0)
+        public async Task<IEnumerable<string>> GetLinks(string url, string cssSelectorLink, string domain, int level = 0)
         {
             if (level < 0)
                 throw new ArgumentOutOfRangeException(nameof(level));
 
-            var rootUrls = await GetPageLinks(url, cssSelectorLink, false);
+            var rootUrls = await GetPageLinks(url, cssSelectorLink, domain, false);
 
             if (level == 0)
                 return rootUrls;
 
-            var links = await GetAllPagesLinks(rootUrls, cssSelectorLink);
+            var links = await GetAllPagesLinks(rootUrls, cssSelectorLink, domain);
 
             --level;
-            var tasks = await Task.WhenAll(links.Select(link => GetLinks(link, cssSelectorLink, level)));
+            var tasks = await Task.WhenAll(links.Select(link => GetLinks(link, cssSelectorLink, domain, level)));
             return tasks.SelectMany(l => l);
         }
 
-        private async Task<IEnumerable<string>> GetPageLinks(string url, string cssSelectorLink, bool needMatch = true) {
+        private async Task<IEnumerable<string>> GetPageLinks(string url, string cssSelectorLink, string domain, bool needMatch = true) {
             try {
                 HtmlWeb web = new HtmlWeb();
                 var htmlDocument = await web.LoadFromWebAsync(url);
@@ -79,7 +76,7 @@ namespace DotnetCrawler.Downloader
                                 .Select(a => {
                                     string href = a.GetAttributeValue("href", null);
                                     if(!Helper.IsValidURL(href)) {
-                                        return _request.BasicSetting.Domain + href;
+                                        return domain + href;
                                     }
 
                                     return href;
@@ -92,7 +89,7 @@ namespace DotnetCrawler.Downloader
             }
         }
 
-        public async Task<IEnumerable<LinkModel>> GetPageLinkModel(HtmlDocument document, string cssSelectorLink) {
+        public async Task<IEnumerable<LinkModel>> GetPageLinkModel(HtmlDocument document, string cssSelectorLink, string domain) {
             try
             {
                 var linkList = new List<LinkModel>();
@@ -101,7 +98,7 @@ namespace DotnetCrawler.Downloader
                 foreach(var node in htmlNodes) {
                     string href = node.GetAttributeValue("href", null);
                     if(!Helper.IsValidURL(href)) {
-                        href = _request.BasicSetting.Domain + href;
+                        href = domain + href;
                     }
 
                     var slug = (new Uri(href)).AbsolutePath;
@@ -122,9 +119,9 @@ namespace DotnetCrawler.Downloader
             }
         }
 
-        private async Task<IEnumerable<string>> GetAllPagesLinks(IEnumerable<string> rootUrls, string cssSelectorLink)
+        private async Task<IEnumerable<string>> GetAllPagesLinks(IEnumerable<string> rootUrls, string cssSelectorLink, string domain)
         {
-            var result = await Task.WhenAll(rootUrls.Select(url => GetPageLinks(url, cssSelectorLink)));
+            var result = await Task.WhenAll(rootUrls.Select(url => GetPageLinks(url, cssSelectorLink, domain)));
 
             return result.SelectMany(x => x).Distinct();
         }

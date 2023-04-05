@@ -50,7 +50,7 @@ namespace DotnetCrawler.Api.Controllers
             await _siteConfigDbRepository.InsertOneAsync(siteConfigDb);
             if (siteConfigDb.BasicSetting.IsThuThap)
             {
-                await _crawlerService.Crawler(siteConfigDb.IdString);
+                await _crawlerService.Crawler(siteConfigDb.Id);
             }
         }
 
@@ -58,9 +58,9 @@ namespace DotnetCrawler.Api.Controllers
         [RequestSizeLimit(2147483648)] // e.g. 2 GB request limit
         public async Task<SiteConfigDb> UpdateSite([FromBody] SiteConfigDb siteConfig)
         {
-            if (siteConfig != null && !string.IsNullOrEmpty(siteConfig.IdString))
+            if (siteConfig != null && !string.IsNullOrEmpty(siteConfig.Id))
             {
-                var siteConfigDb = await _siteConfigDbRepository.FindByIdAsync(siteConfig.IdString);
+                var siteConfigDb = await _siteConfigDbRepository.FindByIdAsync(siteConfig.Id);
                 if (siteConfigDb != null)
                 {
                     await _siteConfigDbRepository.ReplaceOneAsync(siteConfig);
@@ -72,7 +72,7 @@ namespace DotnetCrawler.Api.Controllers
                 }
                 else if (!siteConfigDb.BasicSetting.IsThuThap && siteConfig.BasicSetting.IsThuThap) // ko thu thập -> thu thập
                 {
-                    await _crawlerService.Crawler(siteConfigDb.IdString);
+                    await _crawlerService.Crawler(siteConfigDb.Id);
                 }
             }
 

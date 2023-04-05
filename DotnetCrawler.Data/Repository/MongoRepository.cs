@@ -67,8 +67,7 @@ namespace DotnetCrawler.Data.Repository
 
         public virtual TDocument FindById(string id)
         {
-            var objectId = new ObjectId(id);
-            var filter = Builders<TDocument>.Filter.Eq(doc => doc.Id, objectId);
+            var filter = Builders<TDocument>.Filter.Eq(doc => doc.Id, id);
             return _collection.Find(filter).SingleOrDefault();
         }
 
@@ -76,8 +75,7 @@ namespace DotnetCrawler.Data.Repository
         {
             return Task.Run(() =>
             {
-                var objectId = new ObjectId(id);
-                var filter = Builders<TDocument>.Filter.Eq(doc => doc.Id, objectId);
+                var filter = Builders<TDocument>.Filter.Eq(doc => doc.Id, id);
                 return _collection.Find(filter).SingleOrDefaultAsync();
             });
         }
@@ -85,33 +83,47 @@ namespace DotnetCrawler.Data.Repository
 
         public virtual void InsertOne(TDocument document)
         {
+            document.Id = Guid.NewGuid().ToString();
+            document.CreatedAt = DateTime.Now;
             _collection.InsertOne(document);
         }
 
         public virtual Task InsertOneAsync(TDocument document)
         {
+            document.Id = Guid.NewGuid().ToString();
+            document.CreatedAt = DateTime.Now;
             return Task.Run(() => _collection.InsertOneAsync(document));
         }
 
         public void InsertMany(ICollection<TDocument> documents)
         {
+            foreach(var document in documents) {
+                document.Id = Guid.NewGuid().ToString();
+                document.CreatedAt = DateTime.Now;
+            }
             _collection.InsertMany(documents);
         }
 
 
         public virtual async Task InsertManyAsync(ICollection<TDocument> documents)
         {
+            foreach(var document in documents) {
+                document.Id = Guid.NewGuid().ToString();
+                document.CreatedAt = DateTime.Now;
+            }
             await _collection.InsertManyAsync(documents);
         }
 
         public void ReplaceOne(TDocument document)
         {
             var filter = Builders<TDocument>.Filter.Eq(doc => doc.Id, document.Id);
+            document.CreatedAt = DateTime.Now;
             _collection.FindOneAndReplace(filter, document);
         }
 
         public virtual async Task ReplaceOneAsync(TDocument document)
         {
+            document.CreatedAt = DateTime.Now;
             var filter = Builders<TDocument>.Filter.Eq(doc => doc.Id, document.Id);
             await _collection.FindOneAndReplaceAsync(filter, document);
         }
@@ -128,8 +140,7 @@ namespace DotnetCrawler.Data.Repository
 
         public void DeleteById(string id)
         {
-            var objectId = new ObjectId(id);
-            var filter = Builders<TDocument>.Filter.Eq(doc => doc.Id, objectId);
+            var filter = Builders<TDocument>.Filter.Eq(doc => doc.Id, id);
             _collection.FindOneAndDelete(filter);
         }
 
@@ -137,8 +148,7 @@ namespace DotnetCrawler.Data.Repository
         {
             return Task.Run(() =>
             {
-                var objectId = new ObjectId(id);
-                var filter = Builders<TDocument>.Filter.Eq(doc => doc.Id, objectId);
+                var filter = Builders<TDocument>.Filter.Eq(doc => doc.Id, id);
                 _collection.FindOneAndDeleteAsync(filter);
             });
         }

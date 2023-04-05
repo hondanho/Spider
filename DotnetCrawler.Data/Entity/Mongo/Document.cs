@@ -6,24 +6,14 @@ namespace DotnetCrawler.Data.Models
 {
     public class Document : IDocument
     {
-        public ObjectId Id { get; set; }
-        public string IdString
-        {
-            get
-            {
-                return Id.ToString() ?? string.Empty;
-            }
-            set {
-                Id = !string.IsNullOrEmpty(value) ? new ObjectId(value) : new ObjectId();
-            }
-        }
-        public DateTime CreatedAt => Id.CreationTime;
+        public string Id { get; set; }
+        public DateTime CreatedAt { get; set; }
     }
 
     public interface IDocument
     {
-        ObjectId Id { get; set; }
+        string Id { get; set; }
 
-        DateTime CreatedAt { get; }
+        DateTime CreatedAt { get; set; }
     }
 }
