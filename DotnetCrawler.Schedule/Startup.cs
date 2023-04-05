@@ -16,21 +16,8 @@ using MongoDB.Driver;
 using DotnetCrawler.Core;
 using Microsoft.AspNetCore.Http.Features;
 using DotnetCrawler.API.Service.Wordpress;
-using Hangfire.Client;
-using Hangfire.Common;
-using Hangfire.Server;
-using static MongoDB.Bson.Serialization.Serializers.SerializerHelper;
-using System.Collections.Generic;
-using System.Threading;
-using System;
-using WordPressPCL.Models;
-using RabbitMQ.Client;
 using DotnetCrawler.Data.Model;
 using DotnetCrawler.Core.RabitMQ;
-using MongoDB.Bson.IO;
-using MongoDB.Bson.Serialization.Serializers;
-using MongoDB.Bson.Serialization;
-using MongoDB.Bson;
 
 namespace DotnetCrawler.Api
 {

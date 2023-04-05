@@ -1,14 +1,10 @@
 ﻿using Newtonsoft.Json;
 using RabbitMQ.Client;
 using Rabbit.Common.Display;
-using System.Diagnostics;
 using System.Drawing;
 using System.Text;
 using System.Collections.Immutable;
-using System.Threading.Tasks;
-using DotnetCrawler.Data.Constants;
 using DotnetCrawler.Data.Model;
-using System;
 
 namespace DotnetCrawler.Core.RabitMQ
 {
@@ -36,26 +32,29 @@ namespace DotnetCrawler.Core.RabitMQ
      
         public void SendMessage<T>(string queue, T message)
         {
-            var exchangeName = "";
-            var channel = _connection.CreateModel();
+            // create channel
+            using (var channel = _connection.CreateModel())
+            {
+                var exchangeName = "";
 
-            channel.QueueDeclare(
-                queue,
-                durable: false,
-                exclusive: false,
-                autoDelete: false,
-                arguments: ImmutableDictionary<string, object>.Empty);
-            var json = JsonConvert.SerializeObject(message);
-            var body = Encoding.UTF8.GetBytes(json);
-            channel.BasicPublish(exchange: exchangeName, routingKey: queue, body: body);
+                channel.QueueDeclare(
+                    queue,
+                    durable: false,
+                    exclusive: false,
+                    autoDelete: false,
+                    arguments: ImmutableDictionary<string, object>.Empty);
+                var json = JsonConvert.SerializeObject(message);
+                var body = Encoding.UTF8.GetBytes(json);
+                channel.BasicPublish(exchange: exchangeName, routingKey: queue, body: body);
 
-            DisplayInfo<T>
-                .For(message)
-                .SetExchange(exchangeName)
-                .SetQueue(queue)
-                .SetRoutingKey(queue)
-                .SetVirtualHost(_connectionFactory.VirtualHost)
-                .Display(Color.Cyan);
+                DisplayInfo<T>
+                    .For(message)
+                    .SetExchange(exchangeName)
+                    .SetQueue(queue)
+                    .SetRoutingKey(queue)
+                    .SetVirtualHost(_connectionFactory.VirtualHost)
+                    .Display(Color.Cyan);
+            }
         }
     }
 }

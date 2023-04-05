@@ -42,17 +42,7 @@ namespace DotnetCrawler.Api.Service
 
         public async Task Crawler(SiteConfigDb siteConfig)
         {
-            var crawler = _crawlerCore
-                .AddRequest(siteConfig)
-                .AddDownloader(new DotnetCrawlerDownloader
-                {
-                    DownloderType = DotnetCrawlerDownloaderType.FromMemory,
-                    DownloadPath = @"C:\DotnetCrawlercrawler\",
-                    Proxys = siteConfig.BasicSetting.Proxys,
-                    UserAgent = siteConfig.BasicSetting.UserAgent
-                })
-                .AddScheduler(new DotnetCrawlerScheduler() { });
-            await crawler.Crawle();
+            await _crawlerCore.Crawle(siteConfig);
         }
 
         public async Task ReCrawlerSmall()
@@ -81,18 +71,7 @@ namespace DotnetCrawler.Api.Service
             {
                 foreach (var siteConfig in siteConfigs)
                 {
-                    // run recrawler
-                    var crawler = _crawlerCore
-                   .AddRequest(siteConfig)
-                   .AddDownloader(new DotnetCrawlerDownloader
-                   {
-                       DownloderType = DotnetCrawlerDownloaderType.FromMemory,
-                       DownloadPath = @"C:\DotnetCrawlercrawler\",
-                       Proxys = siteConfig.BasicSetting.Proxys,
-                       UserAgent = siteConfig.BasicSetting.UserAgent
-                   })
-                   .AddScheduler(new DotnetCrawlerScheduler() { });
-                    await crawler.Crawle(isReCrawleSmall);
+                    await _crawlerCore.Crawle(siteConfig, isReCrawleSmall);
                 }
             }
         }

@@ -16,11 +16,8 @@ namespace DotnetCrawler.Downloader
     /// </summary>
     public class DotnetCrawlerPageLinkReader
     {
-        public DotnetCrawlerPageLinkReader()
-        {
-        }
 
-        public async Task<IEnumerable<string>> GetLinks(HtmlDocument document, string cssSelectorLink, string domain, int level = 0)
+        public static async Task<IEnumerable<string>> GetLinks(HtmlDocument document, string cssSelectorLink, string domain, int level = 0)
         {
             if (level < 0)
                 throw new ArgumentOutOfRangeException(nameof(level));
@@ -50,7 +47,7 @@ namespace DotnetCrawler.Downloader
         }
 
 
-        public async Task<IEnumerable<string>> GetLinks(string url, string cssSelectorLink, string domain, int level = 0)
+        public static async Task<IEnumerable<string>> GetLinks(string url, string cssSelectorLink, string domain, int level = 0)
         {
             if (level < 0)
                 throw new ArgumentOutOfRangeException(nameof(level));
@@ -67,7 +64,7 @@ namespace DotnetCrawler.Downloader
             return tasks.SelectMany(l => l);
         }
 
-        private async Task<IEnumerable<string>> GetPageLinks(string url, string cssSelectorLink, string domain, bool needMatch = true) {
+        private static async Task<IEnumerable<string>> GetPageLinks(string url, string cssSelectorLink, string domain, bool needMatch = true) {
             try {
                 HtmlWeb web = new HtmlWeb();
                 var htmlDocument = await web.LoadFromWebAsync(url);
@@ -89,7 +86,7 @@ namespace DotnetCrawler.Downloader
             }
         }
 
-        public async Task<IEnumerable<LinkModel>> GetPageLinkModel(HtmlDocument document, string cssSelectorLink, string domain) {
+        public static async Task<IEnumerable<LinkModel>> GetPageLinkModel(HtmlDocument document, string cssSelectorLink, string domain) {
             try
             {
                 var linkList = new List<LinkModel>();
@@ -119,7 +116,7 @@ namespace DotnetCrawler.Downloader
             }
         }
 
-        private async Task<IEnumerable<string>> GetAllPagesLinks(IEnumerable<string> rootUrls, string cssSelectorLink, string domain)
+        private static async Task<IEnumerable<string>> GetAllPagesLinks(IEnumerable<string> rootUrls, string cssSelectorLink, string domain)
         {
             var result = await Task.WhenAll(rootUrls.Select(url => GetPageLinks(url, cssSelectorLink, domain)));
 

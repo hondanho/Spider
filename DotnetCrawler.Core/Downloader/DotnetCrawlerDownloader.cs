@@ -8,67 +8,13 @@ using System.Threading.Tasks;
 
 namespace DotnetCrawler.Downloader
 {
-    public class DotnetCrawlerDownloader : IDotnetCrawlerDownloader
+    public class DotnetCrawlerDownloader
     {
-        public DotnetCrawlerDownloaderType DownloderType { get; set; }
-        public string DownloadPath { get; set; }
-        private string _localFilePath;
-        public List<string> Proxys { get; set; }
-        public string UserAgent { get; set; }
-        private WebProxy _webProxy;
 
-        public DotnetCrawlerDownloader()
-        {
-        }
-
-        public async Task<HtmlDocument> Download(string crawlUrl)
+        public static async Task<HtmlDocument> Download(string crawlUrl, string DownloadPath, List<string> Proxys, string userAgent, DotnetCrawlerDownloaderType DownloderType)
         {
             // if exist dont download again
-            PrepareFilePath(crawlUrl);
-
-            var existing = GetExistingFile(_localFilePath);
-            if (existing != null)
-                return existing;
-
-            return await DownloadInternal(crawlUrl);
-        }
-
-        private async Task<HtmlDocument> DownloadInternal(string crawlUrl)
-        {
-            _webProxy = Helper.GetRandomProxyLiveOrDefault(Proxys);
-
-            switch (DownloderType)
-            {
-                case DotnetCrawlerDownloaderType.FromFile:
-                    using (WebClient client = new WebClient())
-                    {
-                    client.Proxy = _webProxy;
-                        await client.DownloadFileTaskAsync(crawlUrl, _localFilePath);
-                    }
-                    return GetExistingFile(_localFilePath);
-
-                case DotnetCrawlerDownloaderType.FromMemory:
-                    var htmlDocument = new HtmlDocument();
-                    using (WebClient client = new WebClient())
-                    {
-                        //client.Headers.Add(UserAgent);
-                        client.Proxy = _webProxy;
-                        string htmlCode = await client.DownloadStringTaskAsync(crawlUrl);
-                        htmlDocument.LoadHtml(htmlCode);
-                    }
-                    return htmlDocument;
-
-                case DotnetCrawlerDownloaderType.FromWeb:
-                    HtmlWeb web = new HtmlWeb();
-                    return await web.LoadFromWebAsync(crawlUrl);
-            }
-
-            throw new InvalidOperationException("Can not load html file from given source.");
-        }
-
-        private void PrepareFilePath(string fileName)
-        {
-            var parts = fileName.Split('/');
+            var parts = crawlUrl.Split('/');
             parts = parts.Where(p => !string.IsNullOrWhiteSpace(p)).ToArray();
             var htmlpage = string.Empty;
             if (parts.Length > 0)
@@ -82,10 +28,49 @@ namespace DotnetCrawler.Downloader
             }
             htmlpage = htmlpage.Replace("=", "").Replace("?", "");
 
-            _localFilePath = $"{DownloadPath}{htmlpage}";
+            var localFilePath = $"{DownloadPath}{htmlpage}";
+
+            var existing = GetExistingFile(localFilePath);
+            if (existing != null)
+                return existing;
+
+            return await DownloadInternal(crawlUrl, Proxys, userAgent, localFilePath, DownloderType);
         }
 
-        private HtmlDocument GetExistingFile(string fullPath)
+        private static async Task<HtmlDocument> DownloadInternal(string crawlUrl, List<string> Proxys, string userAgent, string localFilePath, DotnetCrawlerDownloaderType DownloderType)
+        {
+            var webProxy = Helper.GetRandomProxyLiveOrDefault(Proxys);
+
+            switch (DownloderType)
+            {
+                case DotnetCrawlerDownloaderType.FromFile:
+                    using (WebClient client = new WebClient())
+                    {
+                        client.Proxy = webProxy;
+                        await client.DownloadFileTaskAsync(crawlUrl, localFilePath);
+                    }
+                    return GetExistingFile(localFilePath);
+
+                case DotnetCrawlerDownloaderType.FromMemory:
+                    var htmlDocument = new HtmlDocument();
+                    using (WebClient client = new WebClient())
+                    {
+                        //client.Headers.Add(userAgent);
+                        client.Proxy = webProxy;
+                        string htmlCode = await client.DownloadStringTaskAsync(crawlUrl);
+                        htmlDocument.LoadHtml(htmlCode);
+                    }
+                    return htmlDocument;
+
+                case DotnetCrawlerDownloaderType.FromWeb:
+                    HtmlWeb web = new HtmlWeb();
+                    return await web.LoadFromWebAsync(crawlUrl);
+            }
+
+            throw new InvalidOperationException("Can not load html file from given source.");
+        }
+
+        private static HtmlDocument GetExistingFile(string fullPath)
         {
             try
             {

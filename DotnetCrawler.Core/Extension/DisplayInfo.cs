@@ -33,12 +33,12 @@ namespace Rabbit.Common.Display
         public override string ToString()
         {
             var output = new StringBuilder();
-            output.AppendLine($"VIRTUAL HOST: {VirtualHost}");
-            output.AppendLine($"EXCHANGE: {Exchange}");
+            //output.AppendLine($"VIRTUAL HOST: {VirtualHost}");
+            //output.AppendLine($"EXCHANGE: {Exchange}");
             output.AppendLine($"QUEUE: {Queue}");
-            output.AppendLine($"ROUTING KEY: {RoutingKey}");
-            output.AppendLine($"TOPIC: {Topic}");
-            output.AppendLine($"HEADERS: {NormalizedHeaders}");
+            //output.AppendLine($"ROUTING KEY: {RoutingKey}");
+            //output.AppendLine($"TOPIC: {Topic}");
+            //output.AppendLine($"HEADERS: {NormalizedHeaders}");
             output.AppendLine($"MESSAGE: ");
             output.AppendLine($"{JsonSerializer.Serialize(Message, new JsonSerializerOptions { WriteIndented = true })}");
             return output.ToString();
