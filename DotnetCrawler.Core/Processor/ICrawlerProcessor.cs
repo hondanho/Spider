@@ -11,7 +11,7 @@ namespace DotnetCrawler.Processor
 {
     public interface ICrawlerProcessor
     {
-        Task<PostDb> PostProcess(string categoryId, string url, HtmlDocument document);
-        Task<ChapDb> ChapProcess(string postId, string url, HtmlDocument document);
+        Task<PostDb> PostProcess(string categorySlug, string url, HtmlDocument document);
+        Task<ChapDb> ChapProcess(string postSlug, string url, HtmlDocument document);
     }
 }

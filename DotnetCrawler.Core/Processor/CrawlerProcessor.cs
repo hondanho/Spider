@@ -19,7 +19,7 @@ namespace DotnetCrawler.Processor
             _request = request;
         }
 
-        public async Task<PostDb> PostProcess(string categoryId, string url, HtmlDocument document)
+        public async Task<PostDb> PostProcess(string categorySlug, string url, HtmlDocument document)
         {
             // remove element by css selector
             if(_request.PostSetting.RemoveElementCssSelector != null && _request.PostSetting.RemoveElementCssSelector.Count > 0) {
@@ -71,7 +71,7 @@ namespace DotnetCrawler.Processor
             if (!Helper.IsValidURL(avatar)) avatar = _request.BasicSetting.Domain + avatar;
             var entity = new PostDb()
             {
-                CategoryId = categoryId,
+                CategorySlug = categorySlug,
                 Titlte = entityNode.QuerySelector(_request.PostSetting.Titlte)?.InnerText,
                 Slug = (new Uri(url)).AbsolutePath,
                 Description = entityNode.QuerySelector(_request.PostSetting.Description)?.InnerText,
@@ -83,7 +83,7 @@ namespace DotnetCrawler.Processor
             return entity;
         }
 
-        public async Task<ChapDb> ChapProcess(string postId, string url, HtmlDocument document)
+        public async Task<ChapDb> ChapProcess(string postSlug, string url, HtmlDocument document)
         {
             // remove element by css selector
             if(_request.PostSetting.RemoveElementCssSelector != null && _request.PostSetting.RemoveElementCssSelector.Count > 0) {
@@ -112,7 +112,7 @@ namespace DotnetCrawler.Processor
             var entityNode = document.DocumentNode;
             var entity = new ChapDb()
             {
-                PostId = postId,
+                PostSlug = postSlug,
                 Titlte = entityNode.QuerySelector(_request.ChapSetting.Titlte)?.InnerText,
                 Content = entityNode.QuerySelector(_request.ChapSetting.Content)?.InnerText,
                 Slug = (new Uri(url)).AbsolutePath

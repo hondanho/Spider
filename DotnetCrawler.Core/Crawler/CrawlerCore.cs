@@ -6,7 +6,6 @@ using DotnetCrawler.Data.Models;
 using DotnetCrawler.Data.Repository;
 using DotnetCrawler.Downloader;
 using DotnetCrawler.Processor;
-using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,8 +26,7 @@ namespace DotnetCrawler.Core
             IMongoRepository<PostDb> postDbRepository,
             IMongoRepository<ChapDb> chapDbRepository,
             IRabitMQProducer rabitMQProducer,
-            IMongoRepository<CategoryDb> categoryDbRepository,
-            IConfiguration configuration)
+            IMongoRepository<CategoryDb> categoryDbRepository)
         {
             _postDbRepository = postDbRepository;
             _chapDbRepository = chapDbRepository;
@@ -63,17 +61,17 @@ namespace DotnetCrawler.Core
                                 Titlte = category.Titlte
                             };
                             await _categoryDbRepository.InsertOneAsync(categoryDb);
-                            Console.WriteLine(string.Format("Category new: Slug: {0}, Title: {1}", categoryDb.Slug, categoryDb.Titlte));
+                            Console.WriteLine(string.Format("CATEGORY NEW: Id: {0}, Slug: {0}, Title: {1}", categoryDb.Id, categoryDb.Slug, categoryDb.Titlte));
                         }
                         else
                         {
-                            Console.WriteLine(string.Format("Category existed: Slug: {0}, Title: {1}", categoryDb.Slug, categoryDb.Titlte));
+                            Console.WriteLine(string.Format("CATEGORY EXIST: Slug: {0}, Title: {1}", categoryDb.Slug, categoryDb.Titlte));
                         }
 
                         _rabitMQProducer.SendMessage<CategoryMessage>(QueueName.QueueCategoryName, new CategoryMessage()
                         {
                             CategoryUrl = category.Url,
-                            CategoryIdString = categoryDb.Id,
+                            CategorySlug = categoryDb.Slug,
                             SiteConfigDb = siteConfigDb
                         });
                     }
@@ -91,7 +89,7 @@ namespace DotnetCrawler.Core
             SetDocumentDb(request.BasicSetting.Document);
 
             var categoryUrl = categoryMessage.CategoryUrl;
-            var categoryIdString = categoryMessage.CategoryIdString;
+            var CategorySlug = categoryMessage.CategorySlug;
             var domain = categoryMessage.SiteConfigDb.BasicSetting.Domain;
 
             var htmlDocumentCategory = await DotnetCrawlerDownloader.Download(
@@ -108,7 +106,7 @@ namespace DotnetCrawler.Core
             }
 
             var postDbServers = _postDbRepository.FilterBy(pdb =>
-                            pdb.CategoryId == categoryIdString &&
+                            pdb.CategorySlug == CategorySlug &&
                             postUrlModesl.Any(lp => lp.Slug == pdb.Slug || lp.Titlte == pdb.Titlte)
                         );
 
@@ -120,7 +118,7 @@ namespace DotnetCrawler.Core
                     _rabitMQProducer.SendMessage<PostMessage>(QueueName.QueuePostName, new PostMessage()
                     {
                         SiteConfigDb = request,
-                        CategoryIdString = categoryIdString,
+                        CategorySlug = CategorySlug,
                         LinkPost = postUrlModel,
                         IsDuplicate = isDuplicatePost,
                         PostDb = postDbServers.FirstOrDefault(pdb =>
@@ -140,7 +138,7 @@ namespace DotnetCrawler.Core
             {
                 CategoryUrl = urlCategoryNext,
                 SiteConfigDb = request,
-                CategoryIdString = categoryMessage.CategoryIdString
+                CategorySlug = categoryMessage.CategorySlug
             });
         }
 
@@ -153,15 +151,14 @@ namespace DotnetCrawler.Core
             var request = postMessage.SiteConfigDb;
             SetDocumentDb(request.BasicSetting.Document);
 
-            var categoryIdString = postMessage.CategoryIdString;
+            var categorySlug = postMessage.CategorySlug;
             var isReCrawleSmall = postMessage.IsReCrawleSmall;
             var linkPostModel = postMessage.LinkPost;
             var isDuplicate = postMessage.IsDuplicate;
 
-            string idPostString = string.Empty;
             if (!request.PostSetting.IsHasChapter && isDuplicate)
             {
-                Console.WriteLine(string.Format("Post existed: Title: {1}, Slug: {2}, Date: {3}", linkPostModel.Titlte, linkPostModel.Slug, DateTime.Now));
+                Console.WriteLine(string.Format("POST EXIST: Title: {0}, Slug: {}, Date: {2}", linkPostModel.Titlte, linkPostModel.Slug, DateTime.Now));
                 return;
             }
 
@@ -172,17 +169,16 @@ namespace DotnetCrawler.Core
                     request.BasicSetting.UserAgent,
                     DotnetCrawlerDownloaderType.FromMemory
                 );
-            var post = await (new CrawlerProcessor(request).PostProcess(categoryIdString, linkPostModel.Url, htmlDocumentPost));
+            var post = await (new CrawlerProcessor(request).PostProcess(categorySlug, linkPostModel.Url, htmlDocumentPost));
 
             if (!isDuplicate)
             {
                 await _postDbRepository.InsertOneAsync(post);
-                Console.WriteLine(string.Format("Post new: Id: {0}, Title: {1}, Slug: {2}, Date: {3}", post.Id, post.Titlte, post.Slug, DateTime.Now));
+                Console.WriteLine(string.Format("POST NEW: Id: {0}, Title: {1}, Slug: {2}, Date: {3}", post.Id, post.Titlte, post.Slug, DateTime.Now));
             }
             else
             {
-                post.Id = idPostString;
-                Console.WriteLine(string.Format("Post existed: Title: {1}, Slug: {2}, Date: {3}", post.Id, linkPostModel.Titlte, linkPostModel.Slug, DateTime.Now));
+                Console.WriteLine(string.Format("POST EXIST: Title: {0}, Slug: {}, Date: {3}", linkPostModel.Titlte, linkPostModel.Slug, DateTime.Now));
             }
 
             // get info chap
@@ -191,7 +187,7 @@ namespace DotnetCrawler.Core
                 _rabitMQProducer.SendMessage<PostDetailMessage>(QueueName.QueuePostDetailName, new PostDetailMessage()
                 {
                     SiteConfigDb = request,
-                    PostIdString = post.Id,
+                    PostSlug = post.Slug,
                     PostUrl = linkPostModel.Url
                 });
             }
@@ -207,7 +203,7 @@ namespace DotnetCrawler.Core
             SetDocumentDb(request.BasicSetting.Document);
 
             var postUrl = postDetailMessage.PostUrl;
-            var postIdString = postDetailMessage.PostIdString;
+            var postSlug = postDetailMessage.PostSlug;
             var domain = postDetailMessage.SiteConfigDb.BasicSetting.Domain;
 
             var htmlDocumentPost = await DotnetCrawlerDownloader.Download(
@@ -224,25 +220,25 @@ namespace DotnetCrawler.Core
             }
 
             var chapDbServers = _chapDbRepository.FilterBy(pdb =>
-                        pdb.PostId == postIdString &&
+                        pdb.PostSlug == postSlug &&
                         chapUrlModesl.Any(lp => lp.Slug == pdb.Slug || lp.Titlte == pdb.Titlte)
                     );
 
             foreach (var chapUrlModel in chapUrlModesl)
-            { //fake
+            {
                 if (!string.IsNullOrEmpty(chapUrlModel.Slug) && !string.IsNullOrEmpty(chapUrlModel.Titlte) && !string.IsNullOrEmpty(chapUrlModel.Url))
                 {
                     var isDuplicateChap = IsDuplicateChap(request, chapDbServers, chapUrlModel);
                     if (isDuplicateChap)
                     {
-                        Console.WriteLine(string.Format("Chap existed: Title: {0}, Slug: {1}", chapUrlModel.Titlte, chapUrlModel.Slug));
+                        Console.WriteLine(string.Format("CHAP EXIST: Title: {0}, Slug: {1}", chapUrlModel.Titlte, chapUrlModel.Slug));
                         continue;
                     }
 
                     _rabitMQProducer.SendMessage<ChapMessage>(QueueName.QueueChapName, new ChapMessage()
                     {
                         SiteConfigDb = request,
-                        PostIdString = postIdString,
+                        PostSlug = postSlug,
                         ChapUrl = chapUrlModel.Url
                     });
                 }
@@ -257,7 +253,7 @@ namespace DotnetCrawler.Core
             _rabitMQProducer.SendMessage<PostDetailMessage>(QueueName.QueuePostDetailName, new PostDetailMessage()
             {
                 SiteConfigDb = request,
-                PostIdString = postIdString,
+                PostSlug = postSlug,
                 PostUrl = postUrlNext
             });
         }
@@ -267,9 +263,8 @@ namespace DotnetCrawler.Core
             var request = chapMessage.SiteConfigDb;
             SetDocumentDb(request.BasicSetting.Document);
 
-            var postIdString = chapMessage.PostIdString;
+            var postSlug = chapMessage.PostSlug;
             var chapUrl = chapMessage.ChapUrl;
-            var domain = chapMessage.SiteConfigDb.BasicSetting.Domain;
 
             var htmlDocumentChap = await DotnetCrawlerDownloader.Download(
                     chapUrl,
@@ -278,9 +273,9 @@ namespace DotnetCrawler.Core
                     request.BasicSetting.UserAgent,
                     DotnetCrawlerDownloaderType.FromMemory
                 );
-            var chap = await (new CrawlerProcessor(request).ChapProcess(postIdString, chapUrl, htmlDocumentChap));
+            var chap = await (new CrawlerProcessor(request).ChapProcess(postSlug, chapUrl, htmlDocumentChap));
             await _chapDbRepository.InsertOneAsync(chap);
-            Console.WriteLine(string.Format("Chap new: Title: {0}, Slug: {1}", chap.Titlte, chap.Slug));
+            Console.WriteLine(string.Format("CHAP NEW: Id: {0}, Title: {1}, Slug: {2}", chap.Id, chap.Titlte, chap.Slug));
         }
 
         private void SetDocumentDb(string documentName)
