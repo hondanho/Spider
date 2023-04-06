@@ -16,7 +16,6 @@ namespace DotnetCrawler.Api.Controllers
     [Route("[controller]")]
     public class CrawlerController : ControllerBase
     {
-
         private readonly ICrawlerService _crawlerService;
         private readonly ILogger<CrawlerController> _logger;
         private readonly IMongoRepository<SiteConfigDb> _siteConfigDbRepository;
@@ -41,64 +40,37 @@ namespace DotnetCrawler.Api.Controllers
         }
 
         [HttpPost]
-        [Route("crawler-all")]
-        public async Task<IActionResult> CrawlerAll()
+        [Route("recrawle-all")]
+        public async Task<IActionResult> ReCrawleAll()
         {
-            await _crawlerService.CrawlerAll();
+            await _crawlerService.ReCrawleAll();
 
-            return Ok($"Crawler started");
+            return Ok($"ReCrawlerAll started");
         }
 
         [HttpPost]
-        [Route("crawler-detail")]
-        public async Task<IActionResult> CrawlerDetail(string siteId)
+        [Route("crawle-detail")]
+        public async Task<IActionResult> CrawleDetail(string siteId)
         {
            await _crawlerService.Crawler(siteId);
 
-            return Ok($"Crawler started");
+            return Ok($"CrawleDetail Started");
         }
 
         [HttpPost]
-        [Route("recrawler-big-all")]
-        public async Task<IActionResult> RecrawlerBig(int? hour)
-        {
-            hour = hour ?? scheduleHourReCrawlerBig;
-            RecurringJob.AddOrUpdate(() => _crawlerService.ReCrawlerBig(), Cron.HourInterval(hour.Value));
-            return Ok($"Recrawler Big Started");
+        [Route("update-post-chap-now")]
+        public async Task<IActionResult> UpdatePostChapNow() {
+            await _crawlerService.UpdatePostChap();
+            return Ok($"UpdatePostChapNow Started");
         }
 
         [HttpPost]
-        [Route("recrawler-small-all")]
-        public async Task<IActionResult> RecrawlerSmall(int? hour)
+        [Route("update-post-chap-schedule")]
+        public async Task<IActionResult> UpdatePostChapSchedule(int? hour)
         {
             hour = hour ?? scheduleHourReCrawlerSmall;
-            RecurringJob.AddOrUpdate(() => _crawlerService.ReCrawlerSmall(), Cron.HourInterval(hour.Value));
-            return Ok($"Recrawler Big Started");
+            RecurringJob.AddOrUpdate(() => _crawlerService.UpdatePostChap(), Cron.HourInterval(hour.Value));
+            return Ok($"UpdatePostChap Started");
         }
-
-
-        //[HttpPost]
-        //[Route("test")]
-        //public async Task<IActionResult> Test(int number)
-        //{
-        //    BackgroundJob.Enqueue(() => _crawlerService.TaskD(number, 5));
-        //    //var jobId1 = BackgroundJob.Enqueue(() => _crawlerService.TaskD(1, 5));
-        //    //var jobId2 = BackgroundJob.ContinueJobWith(jobId1 , () => _crawlerService.TaskD(2, 5));
-        //    //var jobId3 =  BackgroundJob.ContinueJobWith(jobId2, () => _crawlerService.TaskD(3, 5));
-
-        //    return Ok($"Recurring Job Scheduled. Invoice will be mailed Monthly for job 1");
-        //}
-
-        //[HttpPost]
-        //[Route("test2")]
-        //public async Task<IActionResult> Test2(string thuan) {
-        //    _rabitMQProducer.SendChapMessage<string>("hello t la thuan day" + thuan);
-        //    // create a new instance of BackgroundJobClient
-        //    var client = new BackgroundJobClient();
-
-        //    // get all jobs
-
-        //    return Ok($"Recurring Job Scheduled. Invoice will be mailed Monthly for job 2");
-        //}
     }
 }

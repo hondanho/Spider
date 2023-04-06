@@ -11,6 +11,7 @@ namespace DotnetCrawler.Data.Setting {
         public bool CheckDuplicateTitleChap { get; set; }
         public bool IsThuThap { get; set; }
         public bool IsThuThapLai { get; set; }
+        public bool IsUpdatePostChap { get; set; }
         public string Document { get; set; }
         public string Domain { get; set; }
         public List<string> Proxys { get; set; }

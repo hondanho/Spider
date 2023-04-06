@@ -10,82 +10,55 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace DotnetCrawler.Api.Service
-{
-    public class CrawlerService : ICrawlerService
-    {
+namespace DotnetCrawler.Api.Service {
+    public class CrawlerService : ICrawlerService {
         private readonly ICrawlerCore<CategorySetting> _crawlerCore;
         private readonly IMongoRepository<SiteConfigDb> _siteConfigDbRepository;
 
-        public CrawlerService(ICrawlerCore<CategorySetting> dotnetCrawlerCore, IMongoRepository<SiteConfigDb> siteConfigDbRepository)
-        {
+        public CrawlerService(ICrawlerCore<CategorySetting> dotnetCrawlerCore, IMongoRepository<SiteConfigDb> siteConfigDbRepository) {
             _crawlerCore = dotnetCrawlerCore;
             _siteConfigDbRepository = siteConfigDbRepository;
         }
 
-        public async Task Crawler(string siteId)
-        {
-            if (string.IsNullOrEmpty(siteId)) return;
+        public async Task<bool> Crawler(string siteId) {
+            if(string.IsNullOrEmpty(siteId))
+                return false;
             var siteConfig = await _siteConfigDbRepository.FindByIdAsync(siteId);
-            if (siteConfig == null) return;
+            if(siteConfig == null)
+                return false;
 
             // crawler
-            var newSiteConfig = new SiteConfigDb()
-            {
+            var newSiteConfig = new SiteConfigDb() {
                 BasicSetting = siteConfig.BasicSetting,
                 CategorySetting = siteConfig.CategorySetting,
                 PostSetting = siteConfig.PostSetting,
                 ChapSetting = siteConfig.ChapSetting
             };
             BackgroundJob.Enqueue(() => Crawler(newSiteConfig));
+
+            return true;
         }
 
-        public async Task Crawler(SiteConfigDb siteConfig)
-        {
-            await _crawlerCore.Crawle(siteConfig);
-        }
-
-        public async Task ReCrawlerSmall()
-        {
+        public async Task UpdatePostChap() {
             var siteConfigs = _siteConfigDbRepository.FilterBy(scf => scf.BasicSetting.IsThuThapLai).ToList();
-            await CrawlerListSite(siteConfigs, isReCrawleSmall: true);
-        }
-
-        public async Task CrawlerAll()
-        {
-            var siteConfigs = _siteConfigDbRepository.FilterBy(scf => scf.BasicSetting.IsThuThap).ToList();
-            await CrawlerListSite(siteConfigs);
-        }
-
-        public async Task ReCrawlerBig()
-        {
-            var siteConfigs = _siteConfigDbRepository.FilterBy(scf => scf.BasicSetting.IsThuThap).ToList();
-            await CrawlerListSite(siteConfigs);
-        }
-
-        private async Task CrawlerListSite(
-            List<SiteConfigDb> siteConfigs,
-            bool isReCrawleSmall = false)
-        {
-            if (siteConfigs.Any())
-            {
-                foreach (var siteConfig in siteConfigs)
-                {
-                    await _crawlerCore.Crawle(siteConfig, isReCrawleSmall);
+            if(siteConfigs.Any()) {
+                foreach(var siteConfig in siteConfigs) {
+                    await _crawlerCore.Crawle(siteConfig, isUpdatePostChap: true);
                 }
             }
         }
 
-        public async Task TaskD(int number, int time)
-        {
-            Console.WriteLine($"Welcome Task {number} waitting {time}s");
-            while (time > 0)
-            {
-                //Console.WriteLine($"Doing Task {number} time {time}");
-                await Task.Delay(1000);
-                time--;
+        public async Task ReCrawleAll() {
+            var siteConfigs = _siteConfigDbRepository.FilterBy(scf => scf.BasicSetting.IsThuThap).ToList();
+            if(siteConfigs.Any()) {
+                foreach(var siteConfig in siteConfigs) {
+                    await _crawlerCore.Crawle(siteConfig);
+                }
             }
-            Console.WriteLine($"done task {number}");
+        }
+
+        private async Task Crawler(SiteConfigDb siteConfig) {
+            await _crawlerCore.Crawle(siteConfig);
         }
     }
 }
