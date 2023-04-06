@@ -67,7 +67,7 @@ namespace DotnetCrawler.Core {
                             !string.IsNullOrEmpty(categoryDb.UrlCrawlePostPagingLatest) &&
                             !siteConfigDb.PostSetting.IsHasChapter
                                                         ? categoryDb.UrlCrawlePostPagingLatest : category.Url;
-                        _rabitMQProducer.SendMessage<CategoryMessage>(QueueName.QueueCategoryName, new CategoryMessage() {
+                        _rabitMQProducer.SendMessage<CategoryMessage>(QueueName.QueueCrawleCategory, new CategoryMessage() {
                             UrlCategoryCrawleNext = urlCategoryCrawleNext,
                             CategoryDb = categoryDb,
                             SiteConfigDb = siteConfigDb
@@ -120,7 +120,7 @@ namespace DotnetCrawler.Core {
                         request.PostSetting.IsHasChapter) {
                         postUrlModel.Url = postDb.UrlCrawlePostPagingLatest;
                     }
-                    _rabitMQProducer.SendMessage<PostMessage>(QueueName.QueuePostName, new PostMessage() {
+                    _rabitMQProducer.SendMessage<PostMessage>(QueueName.QueueCrawlePost, new PostMessage() {
                         SiteConfigDb = request,
                         CategorySlug = CategorySlug,
                         LinkPost = postUrlModel,
@@ -134,7 +134,7 @@ namespace DotnetCrawler.Core {
                 return;
             }
 
-            _rabitMQProducer.SendMessage<CategoryMessage>(QueueName.QueueCategoryName, new CategoryMessage() {
+            _rabitMQProducer.SendMessage<CategoryMessage>(QueueName.QueueCrawleCategory, new CategoryMessage() {
                 UrlCategoryCrawleNext = urlCategoryNext,
                 SiteConfigDb = request,
                 CategoryDb = categoryMessage.CategoryDb
@@ -180,7 +180,7 @@ namespace DotnetCrawler.Core {
 
             // get info chap
             if(request.PostSetting.IsHasChapter) {
-                _rabitMQProducer.SendMessage<PostDetailMessage>(QueueName.QueuePostDetailName, new PostDetailMessage() {
+                _rabitMQProducer.SendMessage<PostDetailMessage>(QueueName.QueueCrawlePostDetail, new PostDetailMessage() {
                     SiteConfigDb = request,
                     PostDb = post,
                     UrlPostCrawleNext = linkPostModel.Url
@@ -225,7 +225,7 @@ namespace DotnetCrawler.Core {
                         continue;
                     }
 
-                    _rabitMQProducer.SendMessage<ChapMessage>(QueueName.QueueChapName, new ChapMessage() {
+                    _rabitMQProducer.SendMessage<ChapMessage>(QueueName.QueueCrawleChap, new ChapMessage() {
                         SiteConfigDb = request,
                         PostSlug = postSlug,
                         ChapUrl = chapUrlModel.Url
@@ -238,7 +238,7 @@ namespace DotnetCrawler.Core {
                 return;
             }
 
-            _rabitMQProducer.SendMessage<PostDetailMessage>(QueueName.QueuePostDetailName, new PostDetailMessage() {
+            _rabitMQProducer.SendMessage<PostDetailMessage>(QueueName.QueueCrawlePostDetail, new PostDetailMessage() {
                 SiteConfigDb = request,
                 PostDb = postDetailMessage.PostDb,
                 UrlPostCrawleNext = postUrlNext

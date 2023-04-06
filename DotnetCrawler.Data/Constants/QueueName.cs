@@ -1,29 +1,37 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿
 
 namespace DotnetCrawler.Data.Constants
 {
     public static class QueueName
     {
         /// <summary>
-        /// category url process
+        /// category url process crawle
         /// </summary>
-        public const string QueueCategoryName = "category-queue";
+        public const string QueueCrawleCategory = "category-crawle-queue";
 
         /// <summary>
-        /// post url process
+        /// post url process crawle
         /// </summary>
-        public const string QueuePostName = "post-queue";
+        public const string QueueCrawlePost = "post-crawle-queue";
 
         /// <summary>
-        /// post url paging process
+        /// post url paging process crawle
         /// </summary>
-        public const string QueuePostDetailName = "post-detail-queue";
+        public const string QueueCrawlePostDetail = "post-detail-crawle-queue";
 
         /// <summary>
-        /// chap url process
+        /// chap url process crawle
         /// </summary>
-        public const string QueueChapName = "chap-queue";
+        public const string QueueCrawleChap = "chap-crawle-queue";
+
+        /// <summary>
+        /// post data process sync
+        /// </summary>
+        public const string QueueSyncPost = "post-sync-queue";
+
+        /// <summary>
+        /// chap data process sync
+        /// </summary>
+        public const string QueueSyncChap = "chap-sync-queue";
     }
 }

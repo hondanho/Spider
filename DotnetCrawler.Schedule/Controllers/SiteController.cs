@@ -17,7 +17,7 @@ using System;
 
 namespace DotnetCrawler.Api.Controllers {
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     public class SiteController : ControllerBase {
         private readonly ICrawlerService _crawlerService;
         private readonly IMongoRepository<SiteConfigDb> _siteConfigDbRepository;

@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 namespace DotnetCrawler.Api.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     public class CrawlerController : ControllerBase
     {
         private readonly ICrawlerService _crawlerService;

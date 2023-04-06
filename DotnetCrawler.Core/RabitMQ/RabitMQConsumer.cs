@@ -38,25 +38,25 @@ namespace DotnetCrawler.Core.RabitMQ
             _crawlerCore = dotnetCrawlerCore;
 
             _modelChannel.QueueDeclare(
-                QueueName.QueueCategoryName,
+                QueueName.QueueCrawleCategory,
                 durable: false,
                 exclusive: false,
                 autoDelete: false
             );
             _modelChannel.QueueDeclare(
-                QueueName.QueuePostName,
+                QueueName.QueueCrawlePost,
                 durable: false,
                 exclusive: false,
                 autoDelete: false
             );
             _modelChannel.QueueDeclare(
-                QueueName.QueuePostDetailName,
+                QueueName.QueueCrawlePostDetail,
                 durable: false,
                 exclusive: false,
                 autoDelete: false
             );
             _modelChannel.QueueDeclare(
-                QueueName.QueueChapName,
+                QueueName.QueueCrawleChap,
                 durable: false,
                 exclusive: false,
                 autoDelete: false
@@ -93,13 +93,13 @@ namespace DotnetCrawler.Core.RabitMQ
                     DisplayInfo<string>
                     .For("Received Category")
                     .SetExchange("")
-                    .SetQueue(QueueName.QueueCategoryName)
-                    .SetRoutingKey(QueueName.QueueCategoryName)
+                    .SetQueue(QueueName.QueueCrawleCategory)
+                    .SetRoutingKey(QueueName.QueueCrawleCategory)
                     .SetVirtualHost(_connectionFactory.VirtualHost)
                     .Display(Color.Yellow);
                 }
             };
-            _modelChannel.BasicConsume(queue: QueueName.QueueCategoryName, autoAck: true, consumer: consumer);
+            _modelChannel.BasicConsume(queue: QueueName.QueueCrawleCategory, autoAck: true, consumer: consumer);
         }
 
         private void ConsumerPost()
@@ -119,13 +119,13 @@ namespace DotnetCrawler.Core.RabitMQ
                     DisplayInfo<string>
                     .For("Received Post")
                     .SetExchange("")
-                    .SetQueue(QueueName.QueuePostName)
-                    .SetRoutingKey(QueueName.QueuePostName)
+                    .SetQueue(QueueName.QueueCrawlePost)
+                    .SetRoutingKey(QueueName.QueueCrawlePost)
                     .SetVirtualHost(_connectionFactory.VirtualHost)
                     .Display(Color.Yellow);
                 }
             };
-            _modelChannel.BasicConsume(queue: QueueName.QueuePostName, autoAck: true, consumer: consumer);
+            _modelChannel.BasicConsume(queue: QueueName.QueueCrawlePost, autoAck: true, consumer: consumer);
         }
 
         private void ConsumerPostDetail()
@@ -144,13 +144,13 @@ namespace DotnetCrawler.Core.RabitMQ
                     DisplayInfo<string>
                     .For("Received Post Detail")
                     .SetExchange("")
-                    .SetQueue(QueueName.QueuePostDetailName)
-                    .SetRoutingKey(QueueName.QueuePostDetailName)
+                    .SetQueue(QueueName.QueueCrawlePostDetail)
+                    .SetRoutingKey(QueueName.QueueCrawlePostDetail)
                     .SetVirtualHost(_connectionFactory.VirtualHost)
                     .Display(Color.Yellow);
                 }
             };
-            _modelChannel.BasicConsume(queue: QueueName.QueuePostDetailName, autoAck: true, consumer: consumer);
+            _modelChannel.BasicConsume(queue: QueueName.QueueCrawlePostDetail, autoAck: true, consumer: consumer);
         }
 
         private void ConsumerChap()
@@ -169,13 +169,13 @@ namespace DotnetCrawler.Core.RabitMQ
                     DisplayInfo<string>
                     .For("Received Chap")
                     .SetExchange("")
-                    .SetQueue(QueueName.QueueChapName)
-                    .SetRoutingKey(QueueName.QueueChapName)
+                    .SetQueue(QueueName.QueueCrawleChap)
+                    .SetRoutingKey(QueueName.QueueCrawleChap)
                     .SetVirtualHost(_connectionFactory.VirtualHost)
                     .Display(Color.Yellow);
                 }
             };
-            _modelChannel.BasicConsume(queue: QueueName.QueueChapName, autoAck: true, consumer: consumer);
+            _modelChannel.BasicConsume(queue: QueueName.QueueCrawleChap, autoAck: true, consumer: consumer);
         }
     }
 }

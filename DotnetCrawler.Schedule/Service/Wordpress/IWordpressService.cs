@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using DotnetCrawler.Data.ModelDb;
+using System.Threading.Tasks;
 
 namespace DotnetCrawler.API.Service.Wordpress
 {

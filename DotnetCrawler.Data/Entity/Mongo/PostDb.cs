@@ -10,6 +10,8 @@ namespace DotnetCrawler.Data.Models
         public string CategorySlug { get; set; }
         public string Titlte { get; set; }
         public string Description { get; set; }
+        public string Author { get; set; }
+        public string Tags { get; set; }
         public string Slug { get; set; }
         public string Avatar { get; set; }
         public string Taxonomies { get; set; } // json data

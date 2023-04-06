@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace DotnetCrawler.Api.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     public class SyncDataController : ControllerBase
     {
 
@@ -31,25 +31,19 @@ namespace DotnetCrawler.Api.Controllers
             scheduleHourSync = configuration.GetValue<int>("Setting:ScheduleHourSync");
         }
 
-
         [HttpPost]
-        [Route("sync-all")]
-        public async Task<IActionResult> SyncAllData(int? hour)
+        [Route("sync-now")]
+        public async Task SyncAllDataNow()
         {
-            hour = hour ?? scheduleHourSync;
-            RecurringJob.AddOrUpdate(() => _wordpressService.SyncAllData(), Cron.HourInterval(hour.Value));
-
-
-            return Ok($"SyncAllData started");
+            BackgroundJob.Enqueue(() => _wordpressService.SyncAllData());
         }
 
         [HttpPost]
-        [Route("sync-now")]
-        public async Task<IActionResult> SyncAllDataNow()
+        [Route("sync-schedule")]
+        public async Task SyncAllData(int? hour)
         {
-           BackgroundJob.Enqueue(() => _wordpressService.SyncAllData());
-
-            return Ok($"SyncAllData started");
+            hour = hour ?? scheduleHourSync;
+            RecurringJob.AddOrUpdate(() => _wordpressService.SyncAllData(), Cron.HourInterval(hour.Value));
         }
     }
 }

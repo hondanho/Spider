@@ -3,45 +3,34 @@ using DotnetCrawler.Data.Model;
 using DotnetCrawler.Data.ModelDb;
 using DotnetCrawler.Data.Models;
 using DotnetCrawler.Data.Repository;
-using DotnetCrawler.Data.Setting;
-using Hangfire;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using MongoDB.Bson;
 using MongoDB.Driver;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Policy;
 using System.Threading.Tasks;
-using System;
 
 namespace DotnetCrawler.Api.Controllers {
     [ApiController]
-    [Route("[controller]")]
-    public class CheckerController : ControllerBase {
-        private readonly ICrawlerService _crawlerService;
-        private readonly IMongoRepository<SiteConfigDb> _siteConfigDbRepository;
+    [Route("api/[controller]")]
+    public class DashboardController : ControllerBase {
         private readonly IMongoRepository<CategoryDb> _categoryDbRepository;
         private readonly IMongoRepository<ChapDb> _chapDbRepository;
         private readonly IMongoRepository<PostDb> _postDbRepository;
-        private readonly ILogger<SiteController> _logger;
 
-        public CheckerController(
+        public DashboardController(
             ILogger<SiteController> logger,
             IMongoRepository<CategoryDb> categoryDbRepository,
             IMongoRepository<SiteConfigDb> siteConfigDbRepository,
             IMongoRepository<PostDb> postDbRepository,
             IMongoRepository<ChapDb> chapDbRepository,
             ICrawlerService crawlerService) {
-            _logger = logger;
-            _siteConfigDbRepository = siteConfigDbRepository;
-            _crawlerService = crawlerService;
             _categoryDbRepository = categoryDbRepository;
             _postDbRepository = postDbRepository;
             _chapDbRepository = chapDbRepository;
         }
 
-        [HttpGet("check")]
+        [HttpGet("validate")]
         public CheckerDataModel GetDuplicateByPostSlug() {
             var result = new CheckerDataModel();
 

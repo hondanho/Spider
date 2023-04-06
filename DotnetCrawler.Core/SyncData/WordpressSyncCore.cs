@@ -20,72 +20,109 @@ using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.EntityFrameworkCore.Internal;
 using WordPressPCL.Client;
 using Microsoft.Extensions.Hosting;
+using Newtonsoft.Json;
+using DotnetCrawler.Core.RabitMQ;
+using DotnetCrawler.Data.Constants;
+using DotnetCrawler.Data.Entity.Wordpress;
 
 namespace DotnetCrawler.Core
 {
     public class WordpressSyncCore : IWordpressSyncCore
     {
-        public SiteConfigDb Request { get; private set; }
-        public WordPressClient WordPressClient { get; private set; }
-        private int taskCount { get; set; } // Số lượng task cần thực thi
-
         private readonly IMongoRepository<PostDb> _postDbRepository;
         private readonly IMongoRepository<ChapDb> _chapDbRepository;
         private readonly IMongoRepository<CategoryDb> _categoryDbRepository;
+        private readonly IRabitMQProducer _rabitMQProducer;
+        private string WordpressUriApi { get; set; }
+        private string WordpressUserName { get; set; }
+        private string WordpressPassword { get; set; }
 
         public WordpressSyncCore(
             IMongoRepository<PostDb> postDbRepository,
             IMongoRepository<ChapDb> chapDbRepository,
+            IRabitMQProducer rabitMQProducer,
             IMongoRepository<CategoryDb> categoryDbRepository,
             IConfiguration configuration)
         {
             _postDbRepository = postDbRepository;
             _chapDbRepository = chapDbRepository;
             _categoryDbRepository = categoryDbRepository;
-            taskCount = Int32.Parse(configuration.GetValue<string>("Setting:CrawlerTaskCount"));
+            _rabitMQProducer = rabitMQProducer;
+
+            WordpressUriApi = configuration.GetValue<string>("Setting:WordpressUriApi");
+            WordpressUserName = configuration.GetValue<string>("Setting:WordpressUserName");
+            WordpressPassword = configuration.GetValue<string>("Setting:WordpressPassword");
         }
 
-        public WordpressSyncCore AddRequest(SiteConfigDb request)
-        {
-            Request = request;
-            return this;
-        }
-
-        public WordpressSyncCore AddWordpressClient(WordPressClient wordPressClient, string username, string password)
-        {
-            WordPressClient = wordPressClient;
-            WordPressClient.Auth.UseBasicAuth(username, password);
-            return this;
-        }
-
-        public async Task SyncAllData()
+        public async Task SyncDataBySite(SiteConfigDb request)
         {
             // set collection save
-            _postDbRepository.SetCollectionSave(Request.BasicSetting.Document);
-            _chapDbRepository.SetCollectionSave(Request.BasicSetting.Document);
-            _categoryDbRepository.SetCollectionSave(Request.BasicSetting.Document);
+            _postDbRepository.SetCollectionSave(request.BasicSetting.Document);
+            _chapDbRepository.SetCollectionSave(request.BasicSetting.Document);
+            _categoryDbRepository.SetCollectionSave(request.BasicSetting.Document);
 
-            // sync all category
-            var categorysDb = _categoryDbRepository.AsQueryable().ToList();
-            if (!categorysDb.Any()) return;
-            var categorysWP = await WordPressClient.Categories.GetAllAsync();
-            var createCategoryTasks = categorysDb.Where(ct => !categorysWP.Any(cWP => cWP.Slug == ct.Slug))
-                .Select(post => WordPressClient.Categories.CreateAsync(new Category() {
-                    Slug = post.Slug,
-                    Name = post.Titlte,
-                    Taxonomy = "category"
-                }))
-                .ToList();
-            await Task.WhenAll(createCategoryTasks);
+            // init wordpress core
+            var wpClient = new WordPressClient(request.BasicSetting.WordpressUriApi ?? WordpressUriApi);
+            wpClient.Auth.UseBasicAuth(
+                request.BasicSetting.WordpressUserName ?? WordpressUserName,
+                request.BasicSetting.WordpressPassword ?? WordpressPassword
+            );
+
+            // sync category
+            var categoryDbsNotSync = _categoryDbRepository.FilterBy(cdb => !cdb.IsSynced).ToList();
+            if (categoryDbsNotSync.Any())
+            {
+                foreach (var categoryDb in categoryDbsNotSync)
+                {
+                    await wpClient.Categories.CreateAsync(new Category()
+                    {
+                        Slug = categoryDb.Slug,
+                        Name = categoryDb.Titlte,
+                        Taxonomy = "category"
+                    });
+                }
+            }
+
+            // sync post
+            var categoryWps = (await wpClient.Categories.GetAllAsync()).ToList();
+            var postDbs = _postDbRepository.AsQueryable().ToList();
+            if (postDbs.Any())
+            {
+                List<List<PostDb>> postDbsNotSync = postDbs.Where(pdb => !pdb.IsSynced).Select((value, index) => new { Value = value, Index = index })
+                    .GroupBy(x => x.Index / 50)
+                    .Select(group => group.Select(x => x.Value).ToList())
+                    .ToList();
+
+                foreach (var postDbNotSync in postDbsNotSync)
+                {
+                    var lstCategory = categoryWps.Where(cwp => postDbNotSync.Any(pdb => pdb.CategorySlug == cwp.Slug)).ToList();
+                    _rabitMQProducer.SendMessage<PostSyncMessage>(QueueName.QueueSyncPost, new PostSyncMessage()
+                    {
+                        PostDbs = postDbNotSync,
+                        SiteConfigDb = request,
+                        Categories = lstCategory
+                    });
+                }
+            }
+
+            var post = await wpClient.Posts.CreateAsync(new Post()
+            {
+                Title = new Title("test 44/4"),
+                Slug = "test"
+            });
+
+            var chap = await wpClient.CustomRequest.CreateAsync<Chap, Chap>("/wp-json/wp/v2/chap", new Chap()
+            {
+                Title = new Title("chap 2"),
+                Slug = "chap-1",
+                Parent = post.Id,
+                Type = "chap",
+                Content = new Content("fdsaf")
+            });
 
             // sync all post in category
-            var categorysWPNew = await WordPressClient.Categories.GetAllAsync();
-            var allPost = await WordPressClient.Posts.GetAllAsync();
 
-            await WordPressClient.Posts.CreateAsync(new Post()
-            {
-                Title = new Title("test 44/4")
-            });
+
 
             //if (category != null)
             //{
@@ -100,29 +137,61 @@ namespace DotnetCrawler.Core
             //}
         }
 
-        public async Task<List<WordPressPCL.Models.Category>> GetAllCategory()
+        public async Task JobSyncPost(PostSyncMessage postSyncMessage)
         {
-            var result = await WordPressClient.Categories.GetAllAsync();
-            return result.ToList();
-        }
+            var request = postSyncMessage.SiteConfigDb;
+            var postDbs = postSyncMessage.PostDbs;
+            var categories = postSyncMessage.Categories;
 
-        public async Task<List<WordPressPCL.Models.Post>> GetPostByNames(int categoryId, List<string> postTitles, int take, int skip)
-        {
-            var queryBuilder = new PostsQueryBuilder()
+            // set collection save
+            _postDbRepository.SetCollectionSave(request.BasicSetting.Document);
+            _chapDbRepository.SetCollectionSave(request.BasicSetting.Document);
+            _categoryDbRepository.SetCollectionSave(request.BasicSetting.Document);
+
+            // init wordpress core
+            var wpClient = new WordPressClient(request.BasicSetting.WordpressUriApi ?? WordpressUriApi);
+            wpClient.Auth.UseBasicAuth(
+                request.BasicSetting.WordpressUserName ?? WordpressUserName,
+                request.BasicSetting.WordpressPassword ?? WordpressPassword
+            );
+
+            foreach (var postDb in postDbs)
             {
-                PerPage = take,
-                Offset = skip,
-                OrderBy = PostsOrderBy.Date,
-                Order = Order.DESC,
-                Search = postTitles.Join(","),
-                Categories = new List<int> { categoryId }
-            };
-
-            var listPosts = await WordPressClient.Posts.QueryAsync(queryBuilder);
-            return listPosts.ToList();
+                var categoryIds = categories.Where(cwp => cwp.Slug == postDb.Slug)?.Select(cwp => cwp.Id).ToList();
+                await wpClient.Posts.CreateAsync(new Post()
+                {
+                    Title = new Title(postDb.Titlte),
+                    Slug = postDb.Slug,
+                    Categories = categoryIds,
+                    Content = new Content(postDb.Description),
+                    Status = Status.Publish,
+                    //Tags = ,
+                    //Author = ,
+                    FeaturedMedia = 
+                });
+            }
+            
         }
 
-        public async Task InsertManyPostDbToWP(List<PostDb> posts) {
+
+        //public async Task<List<WordPressPCL.Models.Post>> GetPostByNames(int categoryId, List<string> postTitles, int take, int skip)
+        //{
+        //    var queryBuilder = new PostsQueryBuilder()
+        //    {
+        //        PerPage = take,
+        //        Offset = skip,
+        //        OrderBy = PostsOrderBy.Date,
+        //        Order = Order.DESC,
+        //        Search = postTitles.Join(","),
+        //        Categories = new List<int> { categoryId }
+        //    };
+
+        //    var listPosts = await WordPressClient.Posts.QueryAsync(queryBuilder);
+        //    return listPosts.ToList();
+        //}
+
+        public async Task InsertManyPostDbToWP(List<PostDb> posts)
+        {
             //if (posts.Any())
             //{
 
@@ -201,20 +270,6 @@ namespace DotnetCrawler.Core
         //        }
 
         //        await wpClient.Posts.UpdateAsync(post);
-        //    }
-        //}
-
-        //private static bool IsPostDraftStatus(WordPressClient client, int postId)
-        //{
-        //    var result = client.Posts.GetByIDAsync(postId, true, true).Result;
-
-        //    if (result.Status == Status.Draft)
-        //    {
-        //        return true;
-        //    }
-        //    else
-        //    {
-        //        return false;
         //    }
         //}
     }

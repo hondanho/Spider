@@ -40,14 +40,7 @@ namespace DotnetCrawler.API.Service.Wordpress
             {
                 foreach (var siteConfig in siteConfigs)
                 {
-                    var syncData = _wordpressSyncCore
-                        .AddRequest(siteConfig)
-                        .AddWordpressClient(
-                            new WordPressClient(siteConfig.BasicSetting.WordpressUriApi ?? WordpressUriApi) { },
-                            siteConfig.BasicSetting.WordpressUserName ?? WordpressUserName,
-                            siteConfig.BasicSetting.WordpressPassword ?? WordpressPassword 
-                        );
-                    await syncData.SyncAllData();
+                    BackgroundJob.Enqueue(() => _wordpressSyncCore.SyncDataBySite(siteConfig));
                 }
             }
         }
