@@ -158,7 +158,7 @@ namespace DotnetCrawler.Core
 
             if (!request.PostSetting.IsHasChapter && isDuplicate)
             {
-                Console.WriteLine(string.Format("POST EXIST: Title: {0}, Slug: {}, Date: {2}", linkPostModel.Titlte, linkPostModel.Slug, DateTime.Now));
+                Console.WriteLine(string.Format("POST EXIST: Title: {0}, Slug: {1}, Date: {2}", linkPostModel.Titlte, linkPostModel.Slug, DateTime.Now));
                 return;
             }
 
@@ -178,7 +178,7 @@ namespace DotnetCrawler.Core
             }
             else
             {
-                Console.WriteLine(string.Format("POST EXIST: Title: {0}, Slug: {}, Date: {3}", linkPostModel.Titlte, linkPostModel.Slug, DateTime.Now));
+                Console.WriteLine(string.Format("POST EXIST: Title: {0}, Slug: {1}, Date: {2}", linkPostModel.Titlte, linkPostModel.Slug, DateTime.Now));
             }
 
             // get info chap

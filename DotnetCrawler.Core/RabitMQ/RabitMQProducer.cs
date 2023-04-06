@@ -47,8 +47,8 @@ namespace DotnetCrawler.Core.RabitMQ
                 var body = Encoding.UTF8.GetBytes(json);
                 channel.BasicPublish(exchange: exchangeName, routingKey: queue, body: body);
 
-                DisplayInfo<T>
-                    .For(message)
+                DisplayInfo<string>
+                    .For(string.Format("Send queue {0}", queue))
                     .SetExchange(exchangeName)
                     .SetQueue(queue)
                     .SetRoutingKey(queue)

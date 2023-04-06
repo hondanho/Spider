@@ -90,8 +90,8 @@ namespace DotnetCrawler.Core.RabitMQ
                     var message = JsonSerializer.Deserialize<CategoryMessage>(bodyString);
                     BackgroundJob.Enqueue(() => _crawlerCore.JobCategory(message));
 
-                    DisplayInfo<CategoryMessage>
-                    .For(message)
+                    DisplayInfo<string>
+                    .For("Received Category")
                     .SetExchange("")
                     .SetQueue(QueueName.QueueCategoryName)
                     .SetRoutingKey(QueueName.QueueCategoryName)
@@ -116,8 +116,8 @@ namespace DotnetCrawler.Core.RabitMQ
                     var message = JsonSerializer.Deserialize<PostMessage>(bodyString);
                     BackgroundJob.Enqueue(() => _crawlerCore.JobPost(message));
 
-                    DisplayInfo<PostMessage>
-                    .For(message)
+                    DisplayInfo<string>
+                    .For("Received Post")
                     .SetExchange("")
                     .SetQueue(QueueName.QueuePostName)
                     .SetRoutingKey(QueueName.QueuePostName)
@@ -141,8 +141,8 @@ namespace DotnetCrawler.Core.RabitMQ
                     var message = JsonSerializer.Deserialize<PostDetailMessage>(bodyString);
                     BackgroundJob.Enqueue(() => _crawlerCore.JobPostDetail(message));
 
-                    DisplayInfo<PostDetailMessage>
-                    .For(message)
+                    DisplayInfo<string>
+                    .For("Received Post Detail")
                     .SetExchange("")
                     .SetQueue(QueueName.QueuePostDetailName)
                     .SetRoutingKey(QueueName.QueuePostDetailName)
@@ -166,8 +166,8 @@ namespace DotnetCrawler.Core.RabitMQ
                     var message = JsonSerializer.Deserialize<ChapMessage>(bodyString);
                     BackgroundJob.Enqueue(() => _crawlerCore.JobChap(message));
 
-                    DisplayInfo<ChapMessage>
-                    .For(message)
+                    DisplayInfo<string>
+                    .For("Received Chap")
                     .SetExchange("")
                     .SetQueue(QueueName.QueueChapName)
                     .SetRoutingKey(QueueName.QueueChapName)
