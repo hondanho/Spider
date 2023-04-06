@@ -3,7 +3,6 @@ using DotnetCrawler.Data.ModelDb;
 using DotnetCrawler.Data.Repository;
 using DotnetCrawler.Data.Setting;
 using DotnetCrawler.Downloader;
-using DotnetCrawler.Scheduler;
 using Hangfire;
 using Microsoft.Extensions.Configuration;
 using System.Linq;
@@ -43,11 +42,10 @@ namespace DotnetCrawler.API.Service.Wordpress
                 {
                     var syncData = _wordpressSyncCore
                         .AddRequest(siteConfig)
-                        .AddScheduler(new DotnetCrawlerScheduler() { })
-                                        .AddWordpressClient(
-                        new WordPressClient(siteConfig.BasicSetting.WordpressUriApi ?? WordpressUriApi) { },
-                        siteConfig.BasicSetting.WordpressUserName ?? WordpressUserName,
-                        siteConfig.BasicSetting.WordpressPassword ?? WordpressPassword 
+                        .AddWordpressClient(
+                            new WordPressClient(siteConfig.BasicSetting.WordpressUriApi ?? WordpressUriApi) { },
+                            siteConfig.BasicSetting.WordpressUserName ?? WordpressUserName,
+                            siteConfig.BasicSetting.WordpressPassword ?? WordpressPassword 
                         );
                     await syncData.SyncAllData();
                 }

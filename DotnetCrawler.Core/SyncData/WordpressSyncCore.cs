@@ -5,7 +5,6 @@ using DotnetCrawler.Data.Models;
 using DotnetCrawler.Data.Repository;
 using DotnetCrawler.Downloader;
 using DotnetCrawler.Processor;
-using DotnetCrawler.Scheduler;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Configuration;
 using System;
@@ -26,7 +25,6 @@ namespace DotnetCrawler.Core
 {
     public class WordpressSyncCore : IWordpressSyncCore
     {
-        public IDotnetCrawlerScheduler Scheduler { get; private set; }
         public SiteConfigDb Request { get; private set; }
         public WordPressClient WordPressClient { get; private set; }
         private int taskCount { get; set; } // Số lượng task cần thực thi
@@ -57,12 +55,6 @@ namespace DotnetCrawler.Core
         {
             WordPressClient = wordPressClient;
             WordPressClient.Auth.UseBasicAuth(username, password);
-            return this;
-        }
-
-        public WordpressSyncCore AddScheduler(IDotnetCrawlerScheduler scheduler)
-        {
-            Scheduler = scheduler;
             return this;
         }
 

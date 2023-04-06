@@ -3,7 +3,6 @@ using DotnetCrawler.Data.ModelDb;
 using DotnetCrawler.Data.Repository;
 using DotnetCrawler.Data.Setting;
 using DotnetCrawler.Downloader;
-using DotnetCrawler.Scheduler;
 using Hangfire;
 using System;
 using System.Collections.Generic;
