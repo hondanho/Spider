@@ -57,7 +57,7 @@ namespace DotnetCrawler.Api.Service {
             }
         }
 
-        private async Task Crawler(SiteConfigDb siteConfig) {
+        public async Task Crawler(SiteConfigDb siteConfig) {
             await _crawlerCore.Crawle(siteConfig);
         }
     }

@@ -4,7 +4,6 @@ using System.Collections.Immutable;
 using System.Drawing;
 using System.Linq;
 using System.Text;
-using System.Text.Json;
 using Pastel;
 
 namespace Rabbit.Common.Display
@@ -26,7 +25,6 @@ namespace Rabbit.Common.Display
 
         public void Display(Color displayColor)
         {
-            Console.WriteLine("");
             Console.WriteLine(ToString().Pastel(displayColor));
         }
 
@@ -39,8 +37,8 @@ namespace Rabbit.Common.Display
             //output.AppendLine($"ROUTING KEY: {RoutingKey}");
             //output.AppendLine($"TOPIC: {Topic}");
             //output.AppendLine($"HEADERS: {NormalizedHeaders}");
-            output.AppendLine($"MESSAGE: ");
-            output.AppendLine($"{JsonSerializer.Serialize(Message, new JsonSerializerOptions { WriteIndented = true })}");
+            //output.AppendLine($"MESSAGE: ");
+            //output.AppendLine($"{JsonSerializer.Serialize(Message, new JsonSerializerOptions { WriteIndented = true })}");
             return output.ToString();
         }
 
