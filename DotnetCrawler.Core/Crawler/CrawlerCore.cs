@@ -117,7 +117,7 @@ namespace DotnetCrawler.Core {
                     // check la update post chap
                     if(isUpdatePostChap &&
                         !string.IsNullOrEmpty(postDb?.UrlCrawlePostPagingLatest) &&
-                        !request.PostSetting.IsHasChapter) {
+                        request.PostSetting.IsHasChapter) {
                         postUrlModel.Url = postDb.UrlCrawlePostPagingLatest;
                     }
                     _rabitMQProducer.SendMessage<PostMessage>(QueueName.QueuePostName, new PostMessage() {
