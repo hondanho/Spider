@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using WordPressPCL.Models;
 
 namespace DotnetCrawler.Processor
 {
@@ -69,11 +70,14 @@ namespace DotnetCrawler.Processor
 
             var avatar = entityNode.QuerySelector(_request.PostSetting.Avatar)?.GetAttributeValue("src", null);
             if (!Helper.IsValidURL(avatar)) avatar = _request.BasicSetting.Domain + avatar;
+            var slug = (new Uri(url)).AbsolutePath;
+            slug = slug?.Replace("+", "");
+
             var entity = new PostDb()
             {
                 CategorySlug = categorySlug,
                 Titlte = entityNode.QuerySelector(_request.PostSetting.Titlte)?.InnerText,
-                Slug = (new Uri(url)).AbsolutePath,
+                Slug = slug,
                 Description = entityNode.QuerySelector(_request.PostSetting.Description)?.InnerText,
                 Avatar = avatar,
                 Taxonomies = taxonomies,

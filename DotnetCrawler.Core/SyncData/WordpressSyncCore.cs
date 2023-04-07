@@ -64,9 +64,13 @@ namespace DotnetCrawler.Core {
             );
 
             // sync category
-            var categoryDbsNotSync = _categoryDbRepository.FilterBy(cdb => !cdb.IsSynced).ToList();
-            if(categoryDbsNotSync.Any()) {
-                foreach(var categoryDb in categoryDbsNotSync) { // fake
+            var categoryDbs = _categoryDbRepository.AsQueryable().ToList();
+            if(categoryDbs.Any()) {
+                wpClient.Categories.QueryAsync(x => x.)
+
+
+                foreach(var categoryDb in categoryDbs) { // fake
+
                     var categoryWp = await wpClient.Categories.CreateAsync(new Category() {
                         Slug = categoryDb.Slug,
                         Name = categoryDb.Titlte,
