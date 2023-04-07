@@ -19,8 +19,6 @@ namespace DotnetCrawler.Api.Controllers
         private readonly IWordpressService _wordpressService;
         private readonly ILogger<SyncDataController> _logger;
 
-        private int scheduleHourSync;
-
         public SyncDataController(
             IWordpressService wordpressService,
             IConfiguration configuration,
@@ -28,22 +26,25 @@ namespace DotnetCrawler.Api.Controllers
         {
             _logger = logger;
             _wordpressService = wordpressService;
-            scheduleHourSync = configuration.GetValue<int>("Setting:ScheduleHourSync");
         }
 
         [HttpPost]
         [Route("sync-now")]
         public async Task SyncAllDataNow()
         {
-            BackgroundJob.Enqueue(() => _wordpressService.SyncAllData());
+            await _wordpressService.SyncAllData();
+        }
+        [HttpPost]
+        [Route("sync-data-site-detail")]
+        public async Task SyncDataSiteDetail(string siteId) {
+            await _wordpressService.SyncDataBySite(siteId);
         }
 
         [HttpPost]
         [Route("sync-schedule")]
         public async Task SyncAllData(int? hour)
         {
-            hour = hour ?? scheduleHourSync;
-            RecurringJob.AddOrUpdate(() => _wordpressService.SyncAllData(), Cron.HourInterval(hour.Value));
+            await _wordpressService.SyncDataSchedule(hour);
         }
     }
 }

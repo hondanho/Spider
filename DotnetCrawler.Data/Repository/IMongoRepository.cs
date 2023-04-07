@@ -4,6 +4,7 @@ using System.Linq.Expressions;
 using System.Linq;
 using System.Threading.Tasks;
 using DotnetCrawler.Data.Models;
+using MongoDB.Driver;
 
 namespace DotnetCrawler.Data.Repository
 {
@@ -12,6 +13,8 @@ namespace DotnetCrawler.Data.Repository
         void SetCollectionSave(string collectionName);
         IQueryable<TDocument> AsQueryable();
 
+        IFindFluent<TDocument, TDocument> FilterBy(
+           FilterDefinition<TDocument> filterExpression);
         IEnumerable<TDocument> FilterBy(
             Expression<Func<TDocument, bool>> filterExpression);
 

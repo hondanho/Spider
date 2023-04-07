@@ -6,8 +6,10 @@ using System.Threading.Tasks;
 
 namespace DotnetCrawler.Api.Service {
     public interface ICrawlerService {
-        Task<bool> Crawler(string siteId);
+        Task<bool> CrawlerBySiteId(string siteId);
         Task ReCrawleAll();
-        Task UpdatePostChap();
+        Task UpdatePostChapAll();
+        Task UpdatePostChapScheduleAll(int? hour);
+        Task ClearAllJobAndQueue();
     }
 }

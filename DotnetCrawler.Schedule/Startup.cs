@@ -74,8 +74,8 @@ namespace DotnetCrawler.Api
 
             services.AddSingleton(typeof(ICrawlerCore<>), typeof(CrawlerCore<>));
             services.AddScoped<ICrawlerService, CrawlerService>();
-            services.AddScoped<IWordpressSyncCore, WordpressSyncCore>();
-            services.AddScoped<IWordpressService, WordpressService>();
+            services.AddSingleton<IWordpressSyncCore, WordpressSyncCore>();
+            services.AddSingleton<IWordpressService, WordpressService>();
 
             services.Configure<FormOptions>(options => {
                 options.ValueLengthLimit = int.MaxValue;

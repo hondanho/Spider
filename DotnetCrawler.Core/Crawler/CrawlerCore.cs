@@ -53,7 +53,7 @@ namespace DotnetCrawler.Core {
                         var categoryDb = categoryDbs.FirstOrDefault(cdb => cdb.Slug == category.Slug);
                         if(categoryDb == null) {
                             categoryDb = new CategoryDb() {
-                                Slug = category.Slug,
+                                Slug = category.Slug?.Replace("+", ""),
                                 Titlte = category.Titlte
                             };
                             await _categoryDbRepository.InsertOneAsync(categoryDb);

@@ -49,12 +49,9 @@ namespace DotnetCrawler.Api.Controllers {
         [HttpPost]
         [RequestSizeLimit(2147483648)] // e.g. 2 GB request limit
         public async Task CreateSite([FromBody] SiteConfigDb siteConfigDb) {
-            siteConfigDb.SystemStatus = new SystemStatus() {
-                Status = StatusCrawler.DEFAULT
-            };
             await _siteConfigDbRepository.InsertOneAsync(siteConfigDb);
             if(siteConfigDb.BasicSetting.IsThuThap) {
-                await _crawlerService.Crawler(siteConfigDb.Id);
+                await _crawlerService.CrawlerBySiteId(siteConfigDb.Id);
             }
         }
 
@@ -67,12 +64,9 @@ namespace DotnetCrawler.Api.Controllers {
                     await _siteConfigDbRepository.ReplaceOneAsync(siteConfig);
                 }
 
-                if(siteConfigDb.BasicSetting.IsThuThap && !siteConfig.BasicSetting.IsThuThap && !string.IsNullOrEmpty(siteConfigDb.SystemStatus.JobId)) // đang thu thập -> ko thu thập
-                {
-                    BackgroundJob.Delete(siteConfigDb.SystemStatus.JobId);
-                } else if(!siteConfigDb.BasicSetting.IsThuThap && siteConfig.BasicSetting.IsThuThap) // ko thu thập -> thu thập
+                if(!siteConfigDb.BasicSetting.IsThuThap && siteConfig.BasicSetting.IsThuThap) // ko thu thập -> thu thập -> crawle lai
                   {
-                    await _crawlerService.Crawler(siteConfigDb.Id);
+                    await _crawlerService.CrawlerBySiteId(siteConfigDb.Id);
                 }
             }
 
@@ -85,10 +79,6 @@ namespace DotnetCrawler.Api.Controllers {
                 var siteConfigDb = await _siteConfigDbRepository.FindByIdAsync(siteConfigId);
                 if(siteConfigDb != null) {
                     await _siteConfigDbRepository.DeleteByIdAsync(siteConfigId);
-                }
-
-                if(!string.IsNullOrEmpty(siteConfigDb.SystemStatus.JobId)) {
-                    BackgroundJob.Delete(siteConfigDb.SystemStatus.JobId);
                 }
             }
         }

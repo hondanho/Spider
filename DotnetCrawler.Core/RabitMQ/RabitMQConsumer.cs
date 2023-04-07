@@ -20,12 +20,15 @@ namespace DotnetCrawler.Core.RabitMQ
         private IModel _modelChannel;
         private ConnectionFactory _connectionFactory;
         private readonly ICrawlerCore<SiteConfigDb> _crawlerCore;
+        private readonly IWordpressSyncCore _wordpressSyncCore;
 
         public RabitMQConsumer(
             IRabitMQSettings rabitMQSettings,
-            ICrawlerCore<SiteConfigDb> dotnetCrawlerCore
+            ICrawlerCore<SiteConfigDb> dotnetCrawlerCore,
+            IWordpressSyncCore wordpressSyncCore
             )
         {
+
             _connectionFactory = new ConnectionFactory
             {
                 HostName = rabitMQSettings.HostName,
@@ -36,6 +39,7 @@ namespace DotnetCrawler.Core.RabitMQ
             _connection = _connectionFactory.CreateConnection();
             _modelChannel = _connection.CreateModel();
             _crawlerCore = dotnetCrawlerCore;
+            _wordpressSyncCore = wordpressSyncCore;
 
             _modelChannel.QueueDeclare(
                 QueueName.QueueCrawleCategory,
@@ -61,14 +65,28 @@ namespace DotnetCrawler.Core.RabitMQ
                 exclusive: false,
                 autoDelete: false
             );
+            _modelChannel.QueueDeclare(
+                QueueName.QueueSyncPost,
+                durable: false,
+                exclusive: false,
+                autoDelete: false
+            );
+            _modelChannel.QueueDeclare(
+                QueueName.QueueSyncChap,
+                durable: false,
+                exclusive: false,
+                autoDelete: false
+            );
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            ConsumerCategory();
-            ConsumerPost();
-            ConsumerPostDetail();
-            ConsumerChap();
+            ConsumerCrawleCategory();
+            ConsumerCrawlePost();
+            ConsumerCrawlePostDetail();
+            ConsumerCrawleChap();
+            ConsumerSyncPost();
+            ConsumerSyncChap();
             return Task.CompletedTask;
         }
 
@@ -78,7 +96,7 @@ namespace DotnetCrawler.Core.RabitMQ
             return Task.CompletedTask;
         }
 
-        private void ConsumerCategory()
+        private void ConsumerCrawleCategory()
         {
             var consumer = new EventingBasicConsumer(_modelChannel);
             consumer.Received += (model, ea) =>
@@ -102,7 +120,7 @@ namespace DotnetCrawler.Core.RabitMQ
             _modelChannel.BasicConsume(queue: QueueName.QueueCrawleCategory, autoAck: true, consumer: consumer);
         }
 
-        private void ConsumerPost()
+        private void ConsumerCrawlePost()
         {
 
             var consumer = new EventingBasicConsumer(_modelChannel);
@@ -128,7 +146,7 @@ namespace DotnetCrawler.Core.RabitMQ
             _modelChannel.BasicConsume(queue: QueueName.QueueCrawlePost, autoAck: true, consumer: consumer);
         }
 
-        private void ConsumerPostDetail()
+        private void ConsumerCrawlePostDetail()
         {
             var consumer = new EventingBasicConsumer(_modelChannel);
             consumer.Received += (model, ea) =>
@@ -153,7 +171,7 @@ namespace DotnetCrawler.Core.RabitMQ
             _modelChannel.BasicConsume(queue: QueueName.QueueCrawlePostDetail, autoAck: true, consumer: consumer);
         }
 
-        private void ConsumerChap()
+        private void ConsumerCrawleChap()
         {
             var consumer = new EventingBasicConsumer(_modelChannel);
             consumer.Received += (model, ea) =>
@@ -176,6 +194,50 @@ namespace DotnetCrawler.Core.RabitMQ
                 }
             };
             _modelChannel.BasicConsume(queue: QueueName.QueueCrawleChap, autoAck: true, consumer: consumer);
+        }
+
+        private void ConsumerSyncPost() {
+            var consumer = new EventingBasicConsumer(_modelChannel);
+            consumer.Received += (model, ea) => {
+                var body = ea.Body.ToArray();
+                var bodyString = Encoding.UTF8.GetString(body);
+
+                if(!string.IsNullOrEmpty(bodyString)) {
+                    var message = JsonSerializer.Deserialize<PostSyncMessage>(bodyString);
+                    BackgroundJob.Enqueue(() => _wordpressSyncCore.JobSyncPost(message));
+
+                    DisplayInfo<string>
+                    .For("Received Sync Post")
+                    .SetExchange("")
+                    .SetQueue(QueueName.QueueSyncPost)
+                    .SetRoutingKey(QueueName.QueueSyncPost)
+                    .SetVirtualHost(_connectionFactory.VirtualHost)
+                    .Display(Color.Yellow);
+                }
+            };
+            _modelChannel.BasicConsume(queue: QueueName.QueueSyncPost, autoAck: true, consumer: consumer);
+        }
+
+        private void ConsumerSyncChap() {
+            var consumer = new EventingBasicConsumer(_modelChannel);
+            consumer.Received += (model, ea) => {
+                var body = ea.Body.ToArray();
+                var bodyString = Encoding.UTF8.GetString(body);
+
+                if(!string.IsNullOrEmpty(bodyString)) {
+                    var message = JsonSerializer.Deserialize<ChapSyncMessage>(bodyString);
+                    BackgroundJob.Enqueue(() => _wordpressSyncCore.JobSyncChap(message));
+
+                    DisplayInfo<string>
+                    .For("Received Sync Chap")
+                    .SetExchange("")
+                    .SetQueue(QueueName.QueueSyncChap)
+                    .SetRoutingKey(QueueName.QueueSyncChap)
+                    .SetVirtualHost(_connectionFactory.VirtualHost)
+                    .Display(Color.Yellow);
+                }
+            };
+            _modelChannel.BasicConsume(queue: QueueName.QueueSyncChap, autoAck: true, consumer: consumer);
         }
     }
 }

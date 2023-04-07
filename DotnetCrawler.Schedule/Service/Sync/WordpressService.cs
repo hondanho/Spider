@@ -16,6 +16,7 @@ namespace DotnetCrawler.API.Service.Wordpress
         private readonly IWordpressSyncCore _wordpressSyncCore;
         private readonly IMongoRepository<SiteConfigDb> _siteConfigDbRepository;
 
+        private int scheduleHourSync;
         private string WordpressUriApi { get; set; }
         private string WordpressUserName { get; set; }
         private string WordpressPassword { get; set; }
@@ -31,6 +32,14 @@ namespace DotnetCrawler.API.Service.Wordpress
             WordpressUriApi = configuration.GetValue<string>("Setting:WordpressUriApi");
             WordpressUserName = configuration.GetValue<string>("Setting:WordpressUserName");
             WordpressPassword = configuration.GetValue<string>("Setting:WordpressPassword");
+            scheduleHourSync = configuration.GetValue<int>("Setting:ScheduleHourSync");
+        }
+
+        public async Task SyncDataBySite(string siteId) {
+            var siteConfig = _siteConfigDbRepository.FindById(siteId);
+            if (siteConfig != null) {
+                BackgroundJob.Enqueue(() => _wordpressSyncCore.SyncDataBySite(siteConfig));
+            }
         }
 
         public async Task SyncAllData()
@@ -43,6 +52,11 @@ namespace DotnetCrawler.API.Service.Wordpress
                     BackgroundJob.Enqueue(() => _wordpressSyncCore.SyncDataBySite(siteConfig));
                 }
             }
+        }
+
+        public async Task SyncDataSchedule(int? hour) {
+            hour = hour ?? scheduleHourSync;
+            RecurringJob.AddOrUpdate(() => SyncAllData(), Cron.HourInterval(hour.Value));
         }
     }
 }

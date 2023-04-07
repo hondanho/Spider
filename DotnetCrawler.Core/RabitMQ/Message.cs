@@ -49,7 +49,8 @@ namespace DotnetCrawler.Core.RabitMQ {
     /// </summary>
     public class PostSyncMessage
     {
-        public List<PostDb> PostDbs { get; set; }
+        public List<int> CategoryIds { get; set; }
+        public PostDb PostDb { get; set; }
         public SiteConfigDb SiteConfigDb { get; set; }
         public List<Category> Categories { get; set; }
     }
@@ -59,8 +60,9 @@ namespace DotnetCrawler.Core.RabitMQ {
     /// </summary>
     public class ChapSyncMessage
     {
-        public List<ChapDb> ChapDbs { get; set; }
+        public int PostWpId { get; set; }
         public SiteConfigDb SiteConfigDb { get; set; }
+        public ChapDb ChapDb { get; set; }
 
     }
 }

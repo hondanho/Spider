@@ -41,36 +41,36 @@ namespace DotnetCrawler.Api.Controllers
 
         [HttpPost]
         [Route("recrawle-all")]
-        public async Task<IActionResult> ReCrawleAll()
+        public async Task ReCrawleAll()
         {
             await _crawlerService.ReCrawleAll();
-
-            return Ok($"ReCrawlerAll started");
         }
 
         [HttpPost]
         [Route("crawle-detail")]
-        public async Task<IActionResult> CrawleDetail(string siteId)
+        public async Task CrawleDetail(string siteId)
         {
-           await _crawlerService.Crawler(siteId);
-
-            return Ok($"CrawleDetail Started");
+           await _crawlerService.CrawlerBySiteId(siteId);
         }
 
         [HttpPost]
         [Route("update-post-chap-now")]
-        public async Task<IActionResult> UpdatePostChapNow() {
-            await _crawlerService.UpdatePostChap();
-            return Ok($"UpdatePostChapNow Started");
+        public async Task UpdatePostChapNow() {
+            await _crawlerService.UpdatePostChapAll();
         }
 
         [HttpPost]
         [Route("update-post-chap-schedule")]
-        public async Task<IActionResult> UpdatePostChapSchedule(int? hour)
+        public async Task UpdatePostChapSchedule(int? hour)
         {
             hour = hour ?? scheduleHourReCrawlerSmall;
-            RecurringJob.AddOrUpdate(() => _crawlerService.UpdatePostChap(), Cron.HourInterval(hour.Value));
-            return Ok($"UpdatePostChap Started");
+            await _crawlerService.UpdatePostChapScheduleAll(hour);
+        }
+
+        [HttpPost]
+        [Route("clear-all")]
+        public async Task ClearAllJobAndQueue() {
+            await _crawlerService.ClearAllJobAndQueue();
         }
     }
 }

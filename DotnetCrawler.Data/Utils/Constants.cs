@@ -2,36 +2,37 @@
 
 namespace DotnetCrawler.Data.Constants
 {
-    public static class QueueName
+    public class QueueName
     {
         /// <summary>
         /// category url process crawle
         /// </summary>
-        public const string QueueCrawleCategory = "category-crawle-queue";
+        public const string QueueCrawleCategory = "crawle-queue-category";
 
         /// <summary>
         /// post url process crawle
         /// </summary>
-        public const string QueueCrawlePost = "post-crawle-queue";
+        public const string QueueCrawlePost = "crawle-queue-post";
 
         /// <summary>
         /// post url paging process crawle
         /// </summary>
-        public const string QueueCrawlePostDetail = "post-detail-crawle-queue";
+        public const string QueueCrawlePostDetail = "crawle-queue-post-detail";
 
         /// <summary>
         /// chap url process crawle
         /// </summary>
-        public const string QueueCrawleChap = "chap-crawle-queue";
+        public const string QueueCrawleChap = "crawle-queue-chap";
 
         /// <summary>
         /// post data process sync
         /// </summary>
-        public const string QueueSyncPost = "post-sync-queue";
+        public const string QueueSyncPost = "sync-queue-post";
 
         /// <summary>
         /// chap data process sync
         /// </summary>
-        public const string QueueSyncChap = "chap-sync-queue";
+        public const string QueueSyncChap = "sync-queue-chap";
+
     }
 }

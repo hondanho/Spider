@@ -45,7 +45,16 @@ namespace DotnetCrawler.Data.Repository
         public virtual IEnumerable<TDocument> FilterBy(
             Expression<Func<TDocument, bool>> filterExpression)
         {
+            var filterBuilder1 = Builders<TDocument>.Filter;
+            var filter1 = filterBuilder1.Eq(x => x.CreatedAt, DateTime.Now.Date);
+            List<TDocument> searchResult1 = _collection.Find(filter1).ToList();
+
             return _collection.Find(filterExpression).ToEnumerable();
+        }
+
+        public virtual IFindFluent<TDocument, TDocument> FilterBy(
+           FilterDefinition<TDocument> filterExpression) {
+            return _collection.Find(filterExpression);
         }
 
         public virtual IEnumerable<TProjected> FilterBy<TProjected>(
