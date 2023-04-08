@@ -34,5 +34,10 @@ namespace DotnetCrawler.Data.Constants
         /// </summary>
         public const string QueueSyncChap = "sync-queue-chap";
 
+        /// <summary>
+        /// category data process sync
+        /// </summary>
+        public const string QueueSyncCategory = "sync-queue-category";
+
     }
 }

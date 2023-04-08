@@ -1,24 +1,17 @@
-﻿using DotnetCrawler.Data.Entity.Wordpress;
-using DotnetCrawler.Data.Model;
+﻿using DotnetCrawler.Data.Model;
 using DotnetCrawler.Data.ModelDb;
 using DotnetCrawler.Data.Models;
 using System.Collections.Generic;
 using WordPressPCL.Models;
 
 namespace DotnetCrawler.Core.RabitMQ {
-
-    /// <summary>
-    /// message queue crawle category
-    /// </summary>
+    #region message queue crawler
     public class CategoryMessage {
         public string UrlCategoryCrawleNext { get; set; }
         public CategoryDb CategoryDb { get; set; }
         public SiteConfigDb SiteConfigDb { get; set; }
     }
 
-    /// <summary>
-    /// message queue crawle post
-    /// </summary>
     public class PostMessage {
         public LinkModel LinkPost { get; set; }
         public bool IsDuplicate { get; set; }
@@ -26,27 +19,26 @@ namespace DotnetCrawler.Core.RabitMQ {
         public SiteConfigDb SiteConfigDb { get; set; }
     }
 
-    /// <summary>
-    /// messasge queue crawle post detail
-    /// </summary>
     public class PostDetailMessage {
         public PostDb PostDb { get; set; }
         public string UrlPostCrawleNext { get; set; }
         public SiteConfigDb SiteConfigDb { get; set; }
     }
 
-    /// <summary>
-    /// message queue crawle chap
-    /// </summary>
     public class ChapMessage {
         public string PostSlug { get; set; }
         public string ChapUrl { get; set; }
         public SiteConfigDb SiteConfigDb { get; set; }
     }
+    #endregion
 
-    /// <summary>
-    /// message queue sync post to another db
-    /// </summary>
+    #region queue messasge sync
+    public class CategorySyncMessage
+    {
+        public CategoryDb CategoryDb { get; set; }
+        public SiteConfigDb SiteConfigDb { get; set; }
+    }
+
     public class PostSyncMessage
     {
         public List<int> CategoryIds { get; set; }
@@ -55,14 +47,11 @@ namespace DotnetCrawler.Core.RabitMQ {
         public List<Category> Categories { get; set; }
     }
 
-    /// <summary>
-    /// message queue sync chap to another db
-    /// </summary>
     public class ChapSyncMessage
     {
         public int PostWpId { get; set; }
         public SiteConfigDb SiteConfigDb { get; set; }
         public ChapDb ChapDb { get; set; }
-
     }
+    #endregion
 }

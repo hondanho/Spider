@@ -9,6 +9,7 @@ namespace DotnetCrawler.Core
     public interface IWordpressSyncCore
     {
         Task SyncDataBySite(SiteConfigDb siteConfig);
+        Task JobSyncCategory(CategorySyncMessage categoryMessage);
         Task JobSyncPost(PostSyncMessage postSyncMessage);
         Task JobSyncChap(ChapSyncMessage chapSyncMessage);
     }

@@ -11,6 +11,7 @@ using DotnetCrawler.Data.Constants;
 using DotnetCrawler.Data.Model;
 using Hangfire;
 using DotnetCrawler.Data.ModelDb;
+using System;
 
 namespace DotnetCrawler.Core.RabitMQ
 {
@@ -21,6 +22,8 @@ namespace DotnetCrawler.Core.RabitMQ
         private ConnectionFactory _connectionFactory;
         private readonly ICrawlerCore<SiteConfigDb> _crawlerCore;
         private readonly IWordpressSyncCore _wordpressSyncCore;
+
+        delegate void ConsumerCrawleDelegate(string queueName);
 
         public RabitMQConsumer(
             IRabitMQSettings rabitMQSettings,
@@ -41,42 +44,14 @@ namespace DotnetCrawler.Core.RabitMQ
             _crawlerCore = dotnetCrawlerCore;
             _wordpressSyncCore = wordpressSyncCore;
 
-            _modelChannel.QueueDeclare(
-                QueueName.QueueCrawleCategory,
-                durable: false,
-                exclusive: false,
-                autoDelete: false
-            );
-            _modelChannel.QueueDeclare(
-                QueueName.QueueCrawlePost,
-                durable: false,
-                exclusive: false,
-                autoDelete: false
-            );
-            _modelChannel.QueueDeclare(
-                QueueName.QueueCrawlePostDetail,
-                durable: false,
-                exclusive: false,
-                autoDelete: false
-            );
-            _modelChannel.QueueDeclare(
-                QueueName.QueueCrawleChap,
-                durable: false,
-                exclusive: false,
-                autoDelete: false
-            );
-            _modelChannel.QueueDeclare(
-                QueueName.QueueSyncPost,
-                durable: false,
-                exclusive: false,
-                autoDelete: false
-            );
-            _modelChannel.QueueDeclare(
-                QueueName.QueueSyncChap,
-                durable: false,
-                exclusive: false,
-                autoDelete: false
-            );
+            QueueDeclare(QueueName.QueueCrawleCategory);
+            QueueDeclare(QueueName.QueueCrawlePost);
+            QueueDeclare(QueueName.QueueCrawlePostDetail);
+            QueueDeclare(QueueName.QueueCrawleChap);
+
+            QueueDeclare(QueueName.QueueSyncCategory);
+            QueueDeclare(QueueName.QueueSyncPost);
+            QueueDeclare(QueueName.QueueSyncChap);
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
@@ -85,17 +60,28 @@ namespace DotnetCrawler.Core.RabitMQ
             ConsumerCrawlePost();
             ConsumerCrawlePostDetail();
             ConsumerCrawleChap();
+
+            ConsumerSyncCategory();
             ConsumerSyncPost();
             ConsumerSyncChap();
             return Task.CompletedTask;
         }
-
         public Task StopAsync(CancellationToken cancellationToken)
         {
             _connection.Close();
             return Task.CompletedTask;
         }
 
+        private void QueueDeclare(string QueueName)
+        {
+            _modelChannel.QueueDeclare(
+                QueueName,
+                durable: false,
+                exclusive: false,
+                autoDelete: false
+            );
+        }
+       
         private void ConsumerCrawleCategory()
         {
             var consumer = new EventingBasicConsumer(_modelChannel);
@@ -194,6 +180,30 @@ namespace DotnetCrawler.Core.RabitMQ
                 }
             };
             _modelChannel.BasicConsume(queue: QueueName.QueueCrawleChap, autoAck: true, consumer: consumer);
+        }
+
+        private void ConsumerSyncCategory()
+        {
+            var consumer = new EventingBasicConsumer(_modelChannel);
+            consumer.Received += (model, ea) => {
+                var body = ea.Body.ToArray();
+                var bodyString = Encoding.UTF8.GetString(body);
+
+                if (!string.IsNullOrEmpty(bodyString))
+                {
+                    var message = JsonSerializer.Deserialize<CategorySyncMessage>(bodyString);
+                    BackgroundJob.Enqueue(() => _wordpressSyncCore.JobSyncCategory(message));
+
+                    DisplayInfo<string>
+                    .For("Received Sync Category")
+                    .SetExchange("")
+                    .SetQueue(QueueName.QueueSyncCategory)
+                    .SetRoutingKey(QueueName.QueueSyncCategory)
+                    .SetVirtualHost(_connectionFactory.VirtualHost)
+                    .Display(Color.Yellow);
+                }
+            };
+            _modelChannel.BasicConsume(queue: QueueName.QueueSyncCategory, autoAck: true, consumer: consumer);
         }
 
         private void ConsumerSyncPost() {
