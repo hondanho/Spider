@@ -11,7 +11,6 @@ using DotnetCrawler.Data.Constants;
 using DotnetCrawler.Data.Model;
 using Hangfire;
 using DotnetCrawler.Data.ModelDb;
-using System;
 
 namespace DotnetCrawler.Core.RabitMQ
 {
@@ -49,7 +48,6 @@ namespace DotnetCrawler.Core.RabitMQ
             QueueDeclare(QueueName.QueueCrawlePostDetail);
             QueueDeclare(QueueName.QueueCrawleChap);
 
-            QueueDeclare(QueueName.QueueSyncCategory);
             QueueDeclare(QueueName.QueueSyncPost);
             QueueDeclare(QueueName.QueueSyncChap);
         }
@@ -61,7 +59,6 @@ namespace DotnetCrawler.Core.RabitMQ
             ConsumerCrawlePostDetail();
             ConsumerCrawleChap();
 
-            ConsumerSyncCategory();
             ConsumerSyncPost();
             ConsumerSyncChap();
             return Task.CompletedTask;
@@ -180,30 +177,6 @@ namespace DotnetCrawler.Core.RabitMQ
                 }
             };
             _modelChannel.BasicConsume(queue: QueueName.QueueCrawleChap, autoAck: true, consumer: consumer);
-        }
-
-        private void ConsumerSyncCategory()
-        {
-            var consumer = new EventingBasicConsumer(_modelChannel);
-            consumer.Received += (model, ea) => {
-                var body = ea.Body.ToArray();
-                var bodyString = Encoding.UTF8.GetString(body);
-
-                if (!string.IsNullOrEmpty(bodyString))
-                {
-                    var message = JsonSerializer.Deserialize<CategorySyncMessage>(bodyString);
-                    BackgroundJob.Enqueue(() => _wordpressSyncCore.JobSyncCategory(message));
-
-                    DisplayInfo<string>
-                    .For("Received Sync Category")
-                    .SetExchange("")
-                    .SetQueue(QueueName.QueueSyncCategory)
-                    .SetRoutingKey(QueueName.QueueSyncCategory)
-                    .SetVirtualHost(_connectionFactory.VirtualHost)
-                    .Display(Color.Yellow);
-                }
-            };
-            _modelChannel.BasicConsume(queue: QueueName.QueueSyncCategory, autoAck: true, consumer: consumer);
         }
 
         private void ConsumerSyncPost() {

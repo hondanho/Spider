@@ -6,28 +6,28 @@ using HtmlAgilityPack.CssSelectors.NetCore;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using WordPressPCL.Models;
 
 namespace DotnetCrawler.Processor
 {
-    public class CrawlerProcessor : ICrawlerProcessor
+    public class CrawlerProcessor
     {
-        private readonly SiteConfigDb _request;
+        private const string PathDictSaveImage = @"D:/crawler";
 
-        public CrawlerProcessor(SiteConfigDb request) {
-            _request = request;
-        }
-
-        public async Task<PostDb> PostProcess(string categorySlug, string url, HtmlDocument document)
+        public static async Task<PostDb> PostProcess(SiteConfigDb _request, string categorySlug, string url, HtmlDocument document, string documentName)
         {
             // remove element by css selector
-            if(_request.PostSetting.RemoveElementCssSelector != null && _request.PostSetting.RemoveElementCssSelector.Count > 0) {
-                foreach(string cssSelector in _request.PostSetting.RemoveElementCssSelector) {
+            if (_request.PostSetting.RemoveElementCssSelector != null && _request.PostSetting.RemoveElementCssSelector.Count > 0)
+            {
+                foreach (string cssSelector in _request.PostSetting.RemoveElementCssSelector)
+                {
                     var nodesToRemove = document.DocumentNode.QuerySelectorAll(cssSelector);
-                    if(nodesToRemove != null) {
-                        foreach(HtmlNode node in nodesToRemove) {
+                    if (nodesToRemove != null)
+                    {
+                        foreach (HtmlNode node in nodesToRemove)
+                        {
                             node.Remove(); // Remove each selected node
                         }
                     }
@@ -35,11 +35,15 @@ namespace DotnetCrawler.Processor
             }
 
             // remove node element
-            if(_request.PostSetting.RemoveNodeElement != null && _request.PostSetting.RemoveNodeElement.Count > 0) {
-                foreach(string nodeStr in _request.PostSetting.RemoveNodeElement) {
+            if (_request.PostSetting.RemoveNodeElement != null && _request.PostSetting.RemoveNodeElement.Count > 0)
+            {
+                foreach (string nodeStr in _request.PostSetting.RemoveNodeElement)
+                {
                     HtmlNodeCollection nodesToRemove = document.DocumentNode.SelectNodes($"//{nodeStr}");
-                    if(nodesToRemove != null) {
-                        foreach(HtmlNode node in nodesToRemove) {
+                    if (nodesToRemove != null)
+                    {
+                        foreach (HtmlNode node in nodesToRemove)
+                        {
                             node.Remove(); // Remove each selected node
                         }
                     }
@@ -68,10 +72,24 @@ namespace DotnetCrawler.Processor
                 }
             }
 
-            var avatar = entityNode.QuerySelector(_request.PostSetting.Avatar)?.GetAttributeValue("src", null);
-            if (!Helper.IsValidURL(avatar)) avatar = _request.BasicSetting.Domain + avatar;
             var slug = (new Uri(url)).AbsolutePath;
             slug = slug?.Replace("+", "");
+
+            var avatar = entityNode.QuerySelector(_request.PostSetting.Avatar)?.GetAttributeValue("src", null);
+            if (!string.IsNullOrEmpty(avatar))
+            {
+                if (!Helper.IsValidURL(avatar)) avatar = _request.BasicSetting.Domain + avatar;
+                Uri uriAvatar = new Uri(avatar);
+                string filePath = uriAvatar.AbsolutePath;
+                string fileName = Path.GetFileName(filePath);
+                var pathSave = string.Format("{0}/{1}/{2}{3}", PathDictSaveImage, documentName, categorySlug, slug);
+                
+                if (!File.Exists(string.Format("{0}/{1}", pathSave, fileName)))
+                {
+                    Helper.DownloadImage(avatar, pathSave, fileName);
+                }
+                avatar = string.Format("{0}/{1}", pathSave, fileName);
+            }
 
             var entity = new PostDb()
             {
@@ -87,14 +105,18 @@ namespace DotnetCrawler.Processor
             return entity;
         }
 
-        public async Task<ChapDb> ChapProcess(string postSlug, string url, HtmlDocument document)
+        public static async Task<ChapDb> ChapProcess(SiteConfigDb _request, string postSlug, string url, HtmlDocument document)
         {
             // remove element by css selector
-            if(_request.PostSetting.RemoveElementCssSelector != null && _request.PostSetting.RemoveElementCssSelector.Count > 0) {
-                foreach(string cssSelector in _request.PostSetting.RemoveElementCssSelector) {
+            if (_request.PostSetting.RemoveElementCssSelector != null && _request.PostSetting.RemoveElementCssSelector.Count > 0)
+            {
+                foreach (string cssSelector in _request.PostSetting.RemoveElementCssSelector)
+                {
                     var nodesToRemove = document.DocumentNode.QuerySelectorAll(cssSelector);
-                    if(nodesToRemove != null) {
-                        foreach(HtmlNode node in nodesToRemove) {
+                    if (nodesToRemove != null)
+                    {
+                        foreach (HtmlNode node in nodesToRemove)
+                        {
                             node.Remove(); // Remove each selected node
                         }
                     }
@@ -102,11 +124,15 @@ namespace DotnetCrawler.Processor
             }
 
             // replace element
-            if(_request.ChapSetting.RemoveElement != null && _request.ChapSetting.RemoveElement.Count > 0) {
-                foreach(string nodeStr in _request.ChapSetting.RemoveElement) {
+            if (_request.ChapSetting.RemoveElement != null && _request.ChapSetting.RemoveElement.Count > 0)
+            {
+                foreach (string nodeStr in _request.ChapSetting.RemoveElement)
+                {
                     HtmlNodeCollection nodesToRemove = document.DocumentNode.SelectNodes($"//{nodeStr}");
-                    if(nodesToRemove != null) {
-                        foreach(HtmlNode node in nodesToRemove) {
+                    if (nodesToRemove != null)
+                    {
+                        foreach (HtmlNode node in nodesToRemove)
+                        {
                             node.Remove(); // Remove each selected node
                         }
                     }

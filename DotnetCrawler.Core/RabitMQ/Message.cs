@@ -1,4 +1,5 @@
-﻿using DotnetCrawler.Data.Model;
+﻿using DotnetCrawler.Data.Entity.Mongo.Log;
+using DotnetCrawler.Data.Model;
 using DotnetCrawler.Data.ModelDb;
 using DotnetCrawler.Data.Models;
 using System.Collections.Generic;
@@ -33,16 +34,12 @@ namespace DotnetCrawler.Core.RabitMQ {
     #endregion
 
     #region queue messasge sync
-    public class CategorySyncMessage
-    {
-        public CategoryDb CategoryDb { get; set; }
-        public SiteConfigDb SiteConfigDb { get; set; }
-    }
-
     public class PostSyncMessage
     {
         public List<int> CategoryIds { get; set; }
         public PostDb PostDb { get; set; }
+        public PostLog PostLog { get; set; }
+        public string CategorySlug { get; set; }
         public SiteConfigDb SiteConfigDb { get; set; }
         public List<Category> Categories { get; set; }
     }

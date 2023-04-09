@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.Common;
+using System.IO;
 using System.Net;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace DotnetCrawler.Base.Extension {
     public  class Helper {
@@ -67,6 +70,21 @@ namespace DotnetCrawler.Base.Extension {
             string Pattern = @"^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$";
             Regex Rgx = new Regex(Pattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
             return Rgx.IsMatch(URL);
+        }
+
+        public static void DownloadImage(string imageUrl, string savePath, string fileName)
+        {
+            // Kiểm tra xem thư mục đã tồn tại chưa
+            if (!Directory.Exists(savePath))
+            {
+                Directory.CreateDirectory(savePath);
+            }
+
+            using (WebClient client = new WebClient())
+            {
+                client.DownloadFile(imageUrl, Path.Combine(savePath, fileName));
+                Console.WriteLine("Tải xuống thành công!");
+            }
         }
     }
 }

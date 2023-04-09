@@ -7,11 +7,11 @@ using DotnetCrawler.Data.Models;
 using DotnetCrawler.Data.Repository;
 using DotnetCrawler.Downloader;
 using DotnetCrawler.Processor;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using WordPressPCL.Models;
 
 namespace DotnetCrawler.Core {
     public class CrawlerCore<T> : ICrawlerCore<T> where T : class {
@@ -21,16 +21,19 @@ namespace DotnetCrawler.Core {
 
         private readonly IRabitMQProducer _rabitMQProducer;
         private readonly string downloadPath = @"C:\DotnetCrawlercrawler\";
+        private string databaseName { get; set; }
 
         public CrawlerCore(
             IMongoRepository<PostDb> postDbRepository,
             IMongoRepository<ChapDb> chapDbRepository,
             IRabitMQProducer rabitMQProducer,
+            IConfiguration configuration,
             IMongoRepository<CategoryDb> categoryDbRepository) {
             _postDbRepository = postDbRepository;
             _chapDbRepository = chapDbRepository;
             _categoryDbRepository = categoryDbRepository;
             _rabitMQProducer = rabitMQProducer;
+            databaseName = configuration.GetValue<string>("MongoDbSettings:DatabaseName");
         }
 
         /// <summary>
@@ -50,10 +53,10 @@ namespace DotnetCrawler.Core {
 
                 foreach(var category in categoryModels) {
                     if(!string.IsNullOrEmpty(category?.Slug) && !string.IsNullOrEmpty(category?.Titlte) && !string.IsNullOrEmpty(category?.Url)) {
-                        var categoryDb = categoryDbs.FirstOrDefault(cdb => cdb.Slug == category.Slug);
+                        var categoryDb = categoryDbs.FirstOrDefault(cdb => cdb.Slug == category.Slug.Replace("+", ""));
                         if(categoryDb == null) {
                             categoryDb = new CategoryDb() {
-                                Slug = category.Slug?.Replace("+", ""),
+                                Slug = category.Slug.Replace("+", ""),
                                 Titlte = category.Titlte
                             };
                             await _categoryDbRepository.InsertOneAsync(categoryDb);
@@ -87,7 +90,9 @@ namespace DotnetCrawler.Core {
             var CategorySlug = categoryMessage.CategoryDb.Slug;
             var domain = categoryMessage.SiteConfigDb.BasicSetting.Domain;
             var isUpdatePostChap = request.BasicSetting.IsUpdatePostChap;
-            SetDocumentDb(request.BasicSetting.Document);
+            var document = request.BasicSetting.Document ?? databaseName;
+
+            SetDocumentDb(document);
 
             var htmlDocumentCategory = await DotnetCrawlerDownloader.Download(
                     categoryUrl,
@@ -155,7 +160,8 @@ namespace DotnetCrawler.Core {
             var categorySlug = postMessage.CategorySlug;
             var linkPostModel = postMessage.LinkPost;
             var isDuplicate = postMessage.IsDuplicate;
-            SetDocumentDb(request.BasicSetting.Document);
+            var document = request.BasicSetting.Document ?? databaseName;
+            SetDocumentDb(document);
 
             if(!request.PostSetting.IsHasChapter && isDuplicate) {
                 Console.WriteLine(string.Format("POST EXIST: Title: {0}, Slug: {1}, Date: {2}", linkPostModel.Titlte, linkPostModel.Slug, DateTime.Now));
@@ -169,7 +175,7 @@ namespace DotnetCrawler.Core {
                     request.BasicSetting.UserAgent,
                     DotnetCrawlerDownloaderType.FromMemory
                 );
-            var post = await (new CrawlerProcessor(request).PostProcess(categorySlug, linkPostModel.Url, htmlDocumentPost));
+            var post = await CrawlerProcessor.PostProcess(request, categorySlug, linkPostModel.Url, htmlDocumentPost, document);
 
             if(!isDuplicate) {
                 await _postDbRepository.InsertOneAsync(post);
@@ -262,7 +268,7 @@ namespace DotnetCrawler.Core {
                     request.BasicSetting.UserAgent,
                     DotnetCrawlerDownloaderType.FromMemory
                 );
-            var chap = await (new CrawlerProcessor(request).ChapProcess(postSlug, chapUrl, htmlDocumentChap));
+            var chap = await CrawlerProcessor.ChapProcess(request, postSlug, chapUrl, htmlDocumentChap);
             await _chapDbRepository.InsertOneAsync(chap);
             Console.WriteLine(string.Format("CHAP NEW: Id: {0}, Title: {1}, Slug: {2}", chap.Id, chap.Titlte, chap.Slug));
         }
