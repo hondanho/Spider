@@ -1,5 +1,4 @@
-﻿using Amazon.Runtime.Internal;
-using DotnetCrawler.Core.RabitMQ;
+﻿using DotnetCrawler.Core.RabitMQ;
 using DotnetCrawler.Data.Constants;
 using DotnetCrawler.Data.Model;
 using DotnetCrawler.Data.ModelDb;

@@ -1,13 +1,9 @@
 ﻿using DotnetCrawler.Core;
 using DotnetCrawler.Data.ModelDb;
 using DotnetCrawler.Data.Repository;
-using DotnetCrawler.Data.Setting;
-using DotnetCrawler.Downloader;
 using Hangfire;
-using Microsoft.Extensions.Configuration;
 using System.Linq;
 using System.Threading.Tasks;
-using WordPressPCL;
 
 namespace DotnetCrawler.API.Service.Wordpress
 {
@@ -16,23 +12,14 @@ namespace DotnetCrawler.API.Service.Wordpress
         private readonly IWordpressSyncCore _wordpressSyncCore;
         private readonly IMongoRepository<SiteConfigDb> _siteConfigDbRepository;
 
-        private int scheduleHourSync;
-        private string WordpressUriApi { get; set; }
-        private string WordpressUserName { get; set; }
-        private string WordpressPassword { get; set; }
 
         public WordpressService(
             IWordpressSyncCore wordpressSyncCore,
-            IMongoRepository<SiteConfigDb> siteConfigDbRepository,
-            IConfiguration configuration
+            IMongoRepository<SiteConfigDb> siteConfigDbRepository
             )
         {
             _wordpressSyncCore = wordpressSyncCore;
             _siteConfigDbRepository = siteConfigDbRepository;
-            WordpressUriApi = configuration.GetValue<string>("Setting:WordpressUriApi");
-            WordpressUserName = configuration.GetValue<string>("Setting:WordpressUserName");
-            WordpressPassword = configuration.GetValue<string>("Setting:WordpressPassword");
-            scheduleHourSync = configuration.GetValue<int>("Setting:ScheduleHourSync");
         }
 
         public async Task SyncDataBySite(string siteId) {
@@ -54,9 +41,8 @@ namespace DotnetCrawler.API.Service.Wordpress
             }
         }
 
-        public async Task SyncDataSchedule(int? hour) {
-            hour = hour ?? scheduleHourSync;
-            RecurringJob.AddOrUpdate(() => SyncAllData(), Cron.HourInterval(hour.Value));
+        public async Task SyncDataSchedule(int hour) {
+            RecurringJob.AddOrUpdate(() => SyncAllData(), Cron.HourInterval(hour));
         }
     }
 }

@@ -1,7 +1,10 @@
-﻿using System;
+﻿using HtmlAgilityPack;
+using HtmlAgilityPack.CssSelectors.NetCore;
+using Microsoft.AspNetCore.Http;
+using System;
 using System.Collections.Generic;
-using System.Data.Common;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -84,6 +87,47 @@ namespace DotnetCrawler.Base.Extension {
             {
                 client.DownloadFile(imageUrl, Path.Combine(savePath, fileName));
                 Console.WriteLine("Tải xuống thành công!");
+            }
+        }
+
+        public static async Task<string> GetTextFromSelector(string cssSelector, string url)
+        {
+            var htmlDocument = new HtmlDocument();
+            using (WebClient client = new WebClient())
+            {
+                string htmlCode = await client.DownloadStringTaskAsync(url);
+                htmlDocument.LoadHtml(htmlCode);
+                return htmlDocument.QuerySelector(cssSelector)?.InnerText;
+            }
+        }
+
+        public static async Task<List<string>> GetTextsFromSelector(string cssSelector, string url)
+        {
+            var htmlDocument = new HtmlDocument();
+            var result = new List<string>();
+
+            using (WebClient client = new WebClient())
+            {
+                string htmlCode = await client.DownloadStringTaskAsync(url);
+                htmlDocument.LoadHtml(htmlCode);
+                var allnodes = htmlDocument.QuerySelectorAll(cssSelector);
+                foreach (var node in allnodes)
+                {
+                    result.Add(node.InnerText);
+                }
+            }
+
+            return result;
+        }
+
+        public static async Task<string> GetUrlImageFromSelector(string cssSelector, string url)
+        {
+            var htmlDocument = new HtmlDocument();
+            using (WebClient client = new WebClient())
+            {
+                string htmlCode = await client.DownloadStringTaskAsync(url);
+                htmlDocument.LoadHtml(htmlCode);
+                return htmlDocument.QuerySelector(cssSelector)?.GetAttributeValue("src", null);
             }
         }
     }

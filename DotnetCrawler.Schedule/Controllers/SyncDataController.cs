@@ -18,6 +18,7 @@ namespace DotnetCrawler.Api.Controllers
 
         private readonly IWordpressService _wordpressService;
         private readonly ILogger<SyncDataController> _logger;
+        private int scheduleHourSync;
 
         public SyncDataController(
             IWordpressService wordpressService,
@@ -26,6 +27,7 @@ namespace DotnetCrawler.Api.Controllers
         {
             _logger = logger;
             _wordpressService = wordpressService;
+            scheduleHourSync = configuration.GetValue<int>("Setting:ScheduleHourSync");
         }
 
         [HttpPost]
@@ -44,7 +46,8 @@ namespace DotnetCrawler.Api.Controllers
         [Route("sync-schedule")]
         public async Task SyncAllData(int? hour)
         {
-            await _wordpressService.SyncDataSchedule(hour);
+            hour = hour ?? scheduleHourSync;
+            await _wordpressService.SyncDataSchedule(hour.Value);
         }
     }
 }
