@@ -72,10 +72,11 @@ namespace DotnetCrawler.Core
             );
 
             // sync category
-            var categoryDbs = _categoryDbRepository.AsQueryable().ToList();
+            var categoryDbs = _categoryDbRepository.FilterBy(cdb => request.CategorySetting.CategoryModels.Any(csm => csm.Slug == cdb.Slug)).ToList();
             if (categoryDbs.Any())
             {
                 var categoryWps = await wpClient.Categories.GetAllAsync();
+
                 foreach (var categoryDb in categoryDbs)
                 {
                     var categoryWp = categoryWps.FirstOrDefault(cwp => cwp.Slug == categoryDb.Slug);
@@ -94,7 +95,7 @@ namespace DotnetCrawler.Core
                     var postDbs = _postDbRepository.FilterBy(pdb => pdb.CategorySlug == categoryDb.Slug).ToList();
                     if (postDbs.Any())
                     {
-                        var postLogs = _postLogRepository.FilterBy(pl => categoryDb.Slug == pl.CategorySlug).ToList();
+                        var postLogs = _postLogRepository.FilterBy(pl => pl.CategorySlug == categoryDb.Slug).ToList();
                         foreach (var postDb in postDbs)
                         {
                             var postLog = postLogs.FirstOrDefault(pl => pl.Slug == postDb.Slug && pl.PostId > 0);
@@ -165,6 +166,7 @@ namespace DotnetCrawler.Core
                     Slug = postDb.Slug
                 };
                 await _postLogRepository.InsertOneAsync(postLog);
+                Console.WriteLine(string.Format("POST SYNCED: Id: {0}, Slug: {0}, Title: {1}", postDb.Id, postDb.Slug, postDb.Titlte));
             }
             var chapsLogs = _chapLogRepository.FilterBy(cwp => cwp.PostSlug == postDb.Slug && cwp.ChapId > 0).ToList();
             var chapsDbsNotSync = _chapDbRepository.FilterBy(cdb => cdb.PostSlug == postDb.Slug)
