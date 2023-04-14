@@ -55,6 +55,7 @@ namespace DotnetCrawler.Api
             );
             services.AddHangfireServer(serverOptions => {
                 serverOptions.ServerName = "Hangfire.Mongo server 1";
+                serverOptions.WorkerCount = 15;
             });
 
             services.AddHostedService<RabitMQConsumer>();

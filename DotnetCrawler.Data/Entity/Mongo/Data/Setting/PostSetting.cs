@@ -37,14 +37,9 @@ namespace DotnetCrawler.Data.Setting {
         public List<string> RemoveElementCssSelector { get; set; }
 
         /// <summary>
-        /// key,xpath ví dụ: tac-gia,.col-truyen-main .info-holder div:first-child > a
-        /// category,.col-truyen-main .info div:nth-child(3) a
-        /// </summary>
-        public List<Dictionary> Taxonomies { get; set; }
-        /// <summary>
         /// key, xpath example tw_status, .col-truyen-main .info div:last-child a
         /// </summary>
-        public List<Dictionary> Metadata { get; set; }
+        public List<Dictionary> Metadatas { get; set; }
         /// <summary>
         ///  remove element như script, link, iframe, video
         /// </summary>
@@ -64,5 +59,6 @@ namespace DotnetCrawler.Data.Setting {
     public class Dictionary {
         public string Key { get; set; }
         public string Value { get; set; }
+        public List<string> RemoveElement { get; set; }
     }
 }

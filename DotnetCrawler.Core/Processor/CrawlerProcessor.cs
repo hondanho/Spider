@@ -35,7 +35,7 @@ namespace DotnetCrawler.Processor
             }
 
             // remove node element
-            if (_request.PostSetting.RemoveNodeElement != null && _request.PostSetting.RemoveNodeElement.Count > 0)
+            if (_request.PostSetting.RemoveNodeElement != null && _request.PostSetting.RemoveNodeElement.Any())
             {
                 foreach (string nodeStr in _request.PostSetting.RemoveNodeElement)
                 {
@@ -51,24 +51,36 @@ namespace DotnetCrawler.Processor
             }
 
             var entityNode = document.DocumentNode;
+            var title = entityNode.QuerySelector(_request.PostSetting.Titlte)?.InnerText;
+            var description = entityNode.QuerySelector(_request.PostSetting.Description)?.InnerText;
+            var metadatas = new Dictionary<string, List<string>>();
             // get metadata
-            var metadata = string.Empty;
-            if (_request.PostSetting.Metadata != null && _request.PostSetting.Metadata.Count > 0)
+            if (_request.PostSetting.Metadatas != null && _request.PostSetting.Metadatas.Any())
             {
-                var dataDict = _request.PostSetting.Metadata.Select(kvp => new KeyValuePair<string, string>(kvp.Key, entityNode.QuerySelector(kvp.Value)?.InnerText));
-                if (dataDict.Any())
+                foreach (var fieldPost in _request.PostSetting.Metadatas)
                 {
-                    metadata = JsonConvert.SerializeObject(dataDict);
-                }
-            }
+                    var dataFieldPost = new List<string>();
+                    foreach (var nodeMetadata in entityNode.QuerySelectorAll(fieldPost.Value))
+                    {
+                        if (fieldPost.RemoveElement != null && fieldPost.RemoveElement.Any())
+                        {
+                            foreach (string nodeStr in fieldPost.RemoveElement)
+                            {
+                                HtmlNodeCollection nodesToRemove = nodeMetadata.SelectNodes($"//{nodeStr}");
+                                if (nodesToRemove != null)
+                                {
+                                    foreach (HtmlNode node in nodesToRemove)
+                                    {
+                                        node.Remove(); // Remove each selected node
+                                    }
+                                }
+                            }
+                        }
 
-            var taxonomies = string.Empty;
-            if (_request.PostSetting.Taxonomies != null && _request.PostSetting.Taxonomies.Count > 0)
-            {
-                var dataDict = _request.PostSetting.Taxonomies.Select(kvp => new KeyValuePair<string, string>(kvp.Key, entityNode.QuerySelector(kvp.Value)?.InnerText));
-                if (dataDict.Any())
-                {
-                    taxonomies = JsonConvert.SerializeObject(dataDict);
+                        dataFieldPost.Add(nodeMetadata.InnerText);
+                    }
+
+                    metadatas.Add(fieldPost.Key, dataFieldPost);
                 }
             }
 
@@ -90,16 +102,14 @@ namespace DotnetCrawler.Processor
                 }
                 avatar = string.Format("{0}/{1}", pathSave, fileName);
             }
-
             var entity = new PostDb()
             {
                 CategorySlug = categorySlug,
-                Titlte = entityNode.QuerySelector(_request.PostSetting.Titlte)?.InnerText,
+                Titlte = title,
                 Slug = slug,
-                Description = entityNode.QuerySelector(_request.PostSetting.Description)?.InnerText,
+                Description = description,
                 Avatar = avatar,
-                Taxonomies = taxonomies,
-                Metadata = metadata
+                Metadatas = metadatas
             };
 
             return entity;

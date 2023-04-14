@@ -5,28 +5,33 @@ using DotnetCrawler.Data.Models;
 using System.Collections.Generic;
 using WordPressPCL.Models;
 
-namespace DotnetCrawler.Core.RabitMQ {
+namespace DotnetCrawler.Core.RabitMQ
+{
     #region message queue crawler
-    public class CategoryMessage {
+    public class CategoryMessage
+    {
         public string UrlCategoryCrawleNext { get; set; }
         public CategoryDb CategoryDb { get; set; }
         public SiteConfigDb SiteConfigDb { get; set; }
     }
 
-    public class PostMessage {
+    public class PostMessage
+    {
         public LinkModel LinkPost { get; set; }
         public bool IsDuplicate { get; set; }
         public string CategorySlug { get; set; }
         public SiteConfigDb SiteConfigDb { get; set; }
     }
 
-    public class PostDetailMessage {
+    public class PostDetailMessage
+    {
         public PostDb PostDb { get; set; }
         public string UrlPostCrawleNext { get; set; }
         public SiteConfigDb SiteConfigDb { get; set; }
     }
 
-    public class ChapMessage {
+    public class ChapMessage
+    {
         public string PostSlug { get; set; }
         public string ChapUrl { get; set; }
         public SiteConfigDb SiteConfigDb { get; set; }
@@ -37,6 +42,10 @@ namespace DotnetCrawler.Core.RabitMQ {
     public class PostSyncMessage
     {
         public List<int> CategoryIds { get; set; }
+        public List<int> TacGiaIds { get; set; }
+        public string MetaStatus { get; set; }
+        public string MetaAlternativeName { get; set; }
+        public string MetaSource { get; set; }
         public PostDb PostDb { get; set; }
         public PostLog PostLog { get; set; }
         public string CategorySlug { get; set; }
