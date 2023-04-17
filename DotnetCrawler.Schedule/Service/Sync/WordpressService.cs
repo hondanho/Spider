@@ -25,7 +25,7 @@ namespace DotnetCrawler.API.Service.Wordpress
         public async Task SyncDataBySite(string siteId) {
             var siteConfig = _siteConfigDbRepository.FindById(siteId);
             if (siteConfig != null) {
-                BackgroundJob.Enqueue(() => _wordpressSyncCore.SyncDataBySite(siteConfig));
+                BackgroundJob.Enqueue(() => JobSyncBySite(siteConfig));
             }
         }
 
@@ -36,13 +36,19 @@ namespace DotnetCrawler.API.Service.Wordpress
             {
                 foreach (var siteConfig in siteConfigs)
                 {
-                    BackgroundJob.Enqueue(() => _wordpressSyncCore.SyncDataBySite(siteConfig));
+                    BackgroundJob.Enqueue(() => JobSyncBySite(siteConfig));
                 }
             }
         }
 
         public async Task SyncDataSchedule(int hour) {
             RecurringJob.AddOrUpdate(() => SyncAllData(), Cron.HourInterval(hour));
+        }
+
+        [DisableConcurrentExecution(timeoutInSeconds: 10 * 60)]
+        public async Task JobSyncBySite(SiteConfigDb siteConfig)
+        {
+            await _wordpressSyncCore.SyncDataBySite(siteConfig);
         }
     }
 }

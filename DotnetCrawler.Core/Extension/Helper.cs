@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 
 namespace DotnetCrawler.Base.Extension {
     public  class Helper {
+
         public static T GetRandomElement<T>(List<T> values) {
            if (values != null && values.Count > 0) {
                 Random rand = new Random();

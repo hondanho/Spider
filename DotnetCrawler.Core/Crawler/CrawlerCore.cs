@@ -48,7 +48,7 @@ namespace DotnetCrawler.Core {
 
             // add worker categoryDb
             if(categoryModels.Any()) {
-                var categoryDbs = _categoryDbRepository.FilterBy(cdb => categoryModels.Any(cgm => cgm.Slug == cdb.Slug));
+                var categoryDbs = _categoryDbRepository.FilterBy(cdb => categoryModels.Any(cgm => cgm.Slug == cdb.Slug)).ToList();
 
                 foreach(var category in categoryModels) {
                     if(!string.IsNullOrEmpty(category?.Slug) && !string.IsNullOrEmpty(category?.Titlte) && !string.IsNullOrEmpty(category?.Url)) {
@@ -108,7 +108,7 @@ namespace DotnetCrawler.Core {
             var postDbServers = _postDbRepository.FilterBy(pdb =>
                             pdb.CategorySlug == CategorySlug &&
                             postUrlModesl.Any(lp => lp.Slug == pdb.Slug || lp.Titlte == pdb.Titlte)
-                        ) ?? new List<PostDb>();
+                        ).ToList() ?? new List<PostDb>();
 
             foreach(var postUrlModel in postUrlModesl) {
                 if(!string.IsNullOrEmpty(postUrlModel.Slug) && !string.IsNullOrEmpty(postUrlModel.Titlte) && !string.IsNullOrEmpty(postUrlModel.Url)) {
@@ -220,7 +220,7 @@ namespace DotnetCrawler.Core {
             var chapDbServers = _chapDbRepository.FilterBy(pdb =>
                         pdb.PostSlug == postSlug &&
                         chapUrlModesl.Any(lp => lp.Slug == pdb.Slug || lp.Titlte == pdb.Titlte)
-                    );
+                    ).ToList();
 
             foreach(var chapUrlModel in chapUrlModesl) {
                 if(!string.IsNullOrEmpty(chapUrlModel.Slug) && !string.IsNullOrEmpty(chapUrlModel.Titlte) && !string.IsNullOrEmpty(chapUrlModel.Url)) {

@@ -119,12 +119,14 @@ namespace DotnetCrawler.Api.Service
             }
         }
 
+        [DisableConcurrentExecution(timeoutInSeconds: 10 * 60)]
         public async Task Crawler(SiteConfigDb siteConfig)
         {
             await _crawlerCore.Crawle(siteConfig);
         }
 
-        private async Task ReCrawleAllCore(bool isUpdatePostChap = false)
+        [DisableConcurrentExecution(timeoutInSeconds: 10 * 60)]
+        public async Task ReCrawleAllCore(bool isUpdatePostChap = false)
         {
             var siteConfigs = _siteConfigDbRepository.FilterBy(scf => scf.BasicSetting.IsThuThap).ToList();
             if (siteConfigs.Any())

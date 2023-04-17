@@ -2,9 +2,6 @@ using DotnetCrawler.Data.Models;
 using DotnetCrawler.Data.Repository;
 using DotnetCrawler.Api.Service;
 using Hangfire;
-using Hangfire.Mongo;
-using Hangfire.Mongo.Migration.Strategies.Backup;
-using Hangfire.Mongo.Migration.Strategies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -12,12 +9,14 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
-using MongoDB.Driver;
 using DotnetCrawler.Core;
 using Microsoft.AspNetCore.Http.Features;
 using DotnetCrawler.API.Service.Wordpress;
 using DotnetCrawler.Data.Model;
 using DotnetCrawler.Core.RabitMQ;
+using Hangfire.Console;
+using Hangfire.MemoryStorage;
+using System;
 
 namespace DotnetCrawler.Api
 {
@@ -28,34 +27,22 @@ namespace DotnetCrawler.Api
 
         public IConfiguration Configuration { get; }
         public void ConfigureServices(IServiceCollection services) {
-            var mongoUrlBuilder = new MongoUrlBuilder(
-                    string.Format(
-                        "{0}/{1}",
-                        Configuration.GetValue<string>("MongoDbSettings:ConnectionString"),
-                        Configuration.GetValue<string>("MongoDbSettings:HangfireDb")
-                    )
-                );
-
-            var mongoClient = new MongoClient(mongoUrlBuilder.ToMongoUrl());
             // Add Hangfire services. Hangfire.AspNetCore nuget required
             services.AddHangfire(configuration =>
-                configuration
-                .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
-                .UseSimpleAssemblyNameTypeSerializer()
-                .UseRecommendedSerializerSettings()
-                .UseMongoStorage(mongoClient, mongoUrlBuilder.DatabaseName, new MongoStorageOptions {
-                    MigrationOptions = new MongoMigrationOptions {
-                        MigrationStrategy = new DropMongoMigrationStrategy(),
-                        BackupStrategy = new CollectionMongoBackupStrategy()
-                    },
-                    Prefix = "hangfire",
-                    CheckConnection = true,
-                    CheckQueuedJobsStrategy = CheckQueuedJobsStrategy.TailNotificationsCollection
-                })
-            );
-            services.AddHangfireServer(serverOptions => {
-                serverOptions.ServerName = "Hangfire.Mongo server 1";
-                serverOptions.WorkerCount = 15;
+            {
+                configuration.UseMemoryStorage();
+                configuration.UseConsole();
+
+            });
+
+            services.AddHangfireServer(options =>
+            {
+                options.SchedulePollingInterval = TimeSpan.FromSeconds(5);
+                options.WorkerCount = Math.Min(Environment.ProcessorCount * 5, Configuration.GetValue<int>("Setting:MaxWorkCount"));
+            });
+            GlobalJobFilters.Filters.Add(new AutomaticRetryAttribute
+            {
+                Attempts = 1
             });
 
             services.AddHostedService<RabitMQConsumer>();
