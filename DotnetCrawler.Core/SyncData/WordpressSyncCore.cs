@@ -115,13 +115,18 @@ namespace DotnetCrawler.Core
                         var slug = tacgiaTxt.Trim().Replace(" ", "-").ToLower();
                         if (!tacGiaWps.Any(twp => twp.Name == tacgiaTxt || twp.Slug == slug))
                         {
-                            var tacgia = await wpClient.CustomRequest.CreateAsync<TacGiaWp, TacGiaWp>($"/wp-json/wp/v2/tac-gia", new TacGiaWp
+                            try
                             {
-                                Slug = slug,
-                                Name = tacgiaTxt.Trim(),
-                                Taxonomy = "tac-gia"
-                            });
-                            Console.WriteLine(string.Format("TAC GIA SYNCED: Id: {0}, Slug: {0}, Title: {1}", tacgia.Id, tacgia.Slug, tacgia.Name));
+                                var tacgia = await wpClient.CustomRequest.CreateAsync<TacGiaWp, TacGiaWp>($"/wp-json/wp/v2/tac-gia", new TacGiaWp
+                                {
+                                    Slug = slug,
+                                    Name = tacgiaTxt.Trim(),
+                                    Taxonomy = "tac-gia"
+                                });
+                                Console.WriteLine(string.Format("TAC GIA SYNCED: Id: {0}, Slug: {0}, Title: {1}", tacgia.Id, tacgia.Slug, tacgia.Name));
+                            } catch (Exception ex) { 
+                                Console.WriteLine(ex?.Message);
+                            }
                         }
                     }
                 }
@@ -267,14 +272,32 @@ namespace DotnetCrawler.Core
                                             ).ToList();
             if (chapsDbsNotSync.Any())
             {
-                foreach (var chapDb in chapsDbsNotSync)
+                foreach (var chapDb in chapsDbsNotSync.OrderBy(cdb => cdb.Index).ToList())
                 {
-                    _rabitMQProducer.SendMessage<ChapSyncMessage>(QueueName.QueueSyncChap, new ChapSyncMessage()
+                    var newChapWp = new ChapWp
                     {
-                        PostWpId = postLog.PostId,
-                        SiteConfigDb = request,
-                        ChapDb = chapDb
-                    });
+                        Content = new Content(chapDb.Content),
+                        Parent = postLog.PostId,
+                        Slug = chapDb.Slug,
+                        Type = "chap",
+                        Title = new Title(chapDb.Titlte),
+                        Status = Status.Publish
+                    };
+                    var chapWpSynced = await wpClient.CustomRequest.CreateAsync<ChapWp, ChapWp>("/wp-json/wp/v2/chap", newChapWp);
+                    var newChapLog = new ChapLog
+                    {
+                        Slug = chapDb.Slug,
+                        PostSlug = chapDb.PostSlug,
+                        ChapId = chapWpSynced.Id
+                    };
+                    await _chapLogRepository.InsertOneAsync(newChapLog);
+                    Console.WriteLine(string.Format("CHAP SYNCED: Id: {0}, Slug: {0}, Title: {1}", chapDb.Id, chapDb.Slug, chapDb.Titlte));
+                    //_rabitMQProducer.SendMessage<ChapSyncMessage>(QueueName.QueueSyncChap, new ChapSyncMessage()
+                    //{
+                    //    PostWpId = postLog.PostId,
+                    //    SiteConfigDb = request,
+                    //    ChapDb = chapDb
+                    //});
                 }
             }
         }

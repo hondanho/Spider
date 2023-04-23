@@ -95,6 +95,7 @@ namespace DotnetCrawler.Downloader
                     }
 
                     var slug = (new Uri(href)).AbsolutePath;
+                    slug = Helper.CleanSlug(slug);
                     if (!string.IsNullOrEmpty(node.InnerText) && !string.IsNullOrEmpty(href) && !string.IsNullOrEmpty(slug)) {
                         linkList.Add(new LinkModel() {
                             Titlte = node.InnerText,

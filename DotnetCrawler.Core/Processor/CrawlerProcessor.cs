@@ -1,14 +1,15 @@
 ﻿using DotnetCrawler.Base.Extension;
+using DotnetCrawler.Data.Constants;
 using DotnetCrawler.Data.ModelDb;
 using DotnetCrawler.Data.Models;
 using HtmlAgilityPack;
 using HtmlAgilityPack.CssSelectors.NetCore;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using WordPressPCL.Models;
 
 namespace DotnetCrawler.Processor
 {
@@ -16,7 +17,7 @@ namespace DotnetCrawler.Processor
     {
         private const string PathDictSaveImage = @"D:/crawler";
 
-        public static async Task<PostDb> PostProcess(SiteConfigDb _request, string categorySlug, string url, HtmlDocument document, string documentName)
+        public static async Task<PostDb> PostProcess(SiteConfigDb _request, string categorySlug, string url, int index, HtmlDocument document, string documentName)
         {
             // remove element by css selector
             if (_request.PostSetting.RemoveElementCssSelector != null && _request.PostSetting.RemoveElementCssSelector.Count > 0)
@@ -84,8 +85,13 @@ namespace DotnetCrawler.Processor
                 }
             }
 
-            var slug = (new Uri(url)).AbsolutePath;
-            slug = slug?.Replace("+", "");
+            var slug =  (new Uri(url)).AbsolutePath;
+            slug = Helper.CleanSlug(slug);
+            var statusCurrent = metadatas.FirstOrDefault(metadata =>
+                        metadata.Key == MetaFieldPost.Status &&
+                        metadata.Value != null &&
+                        metadata.Value.Any()
+                    ).Value?.FirstOrDefault();
 
             var avatar = entityNode.QuerySelector(_request.PostSetting.Avatar)?.GetAttributeValue("src", null);
             if (!string.IsNullOrEmpty(avatar))
@@ -108,14 +114,16 @@ namespace DotnetCrawler.Processor
                 Titlte = title,
                 Slug = slug,
                 Description = description,
+                Status = Helper.ConvertStrToCapitalize(statusCurrent),
                 Avatar = avatar,
-                Metadatas = metadatas
+                Metadatas = metadatas,
+                Index = index
             };
 
             return entity;
         }
 
-        public static async Task<ChapDb> ChapProcess(SiteConfigDb _request, string postSlug, string url, HtmlDocument document)
+        public static async Task<ChapDb> ChapProcess(SiteConfigDb _request, string postSlug, string url, int index, HtmlDocument document)
         {
             // remove element by css selector
             if (_request.PostSetting.RemoveElementCssSelector != null && _request.PostSetting.RemoveElementCssSelector.Count > 0)
@@ -150,12 +158,16 @@ namespace DotnetCrawler.Processor
             }
 
             var entityNode = document.DocumentNode;
+            var slug = (new Uri(url)).AbsolutePath;
+            slug = Helper.CleanSlug(slug);
+
             var entity = new ChapDb()
             {
                 PostSlug = postSlug,
                 Titlte = entityNode.QuerySelector(_request.ChapSetting.Titlte)?.InnerText,
                 Content = entityNode.QuerySelector(_request.ChapSetting.Content)?.InnerText,
-                Slug = (new Uri(url)).AbsolutePath
+                Slug = slug,
+                Index = index
             };
 
             return entity;

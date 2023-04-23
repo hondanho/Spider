@@ -8,6 +8,15 @@ namespace DotnetCrawler.Data.Setting {
         public List<CategoryModel> CategoryModels { get; set; }
         public string LinkPostSelector { get; set; }
         public string PagingSelector { get; set; }
+        /// <summary>
+        /// Xác định paging number của trang, tính toán index chap
+        /// </summary>
+        public string PagingNumberRegex { get; set; }
+
+        /// <summary>
+        /// Số lượng post trên 1 paging category, example: 20
+        /// </summary>
+        public int AmountPostInCategory { get; set; } = 20;
     }
 
     public class CategoryModel

@@ -131,5 +131,53 @@ namespace DotnetCrawler.Base.Extension {
                 return htmlDocument.QuerySelector(cssSelector)?.GetAttributeValue("src", null);
             }
         }
+
+        public static int GetPageNumberFromRegex(string url, string regexPattern)
+        {
+            var result = 1;
+            try
+            {
+                if (!string.IsNullOrEmpty(url) && !string.IsNullOrEmpty(regexPattern))
+                {
+                    MatchCollection matches = Regex.Matches(url, regexPattern);
+                    if (matches.Count > 0)
+                    {
+                        foreach (Match match in matches)
+                        {
+                            var patternNumber = @"\d+";
+                            MatchCollection matchesNumber = Regex.Matches(match.Value, patternNumber);
+                            if (matchesNumber.Count > 0)
+                            {
+                                result = Int32.Parse(matchesNumber[0].Value);
+                                break;
+                            }
+                        }
+                    }
+                }
+            } catch
+            {
+            }
+
+            return result;
+        }
+
+        public static string CleanSlug(string slug)
+        {
+            if (string.IsNullOrEmpty(slug)) return string.Empty;
+            
+            slug = slug?.Replace("+", "-");
+            slug = slug?.Replace(".html", "");
+            return slug;
+        }
+
+        public static string ConvertStrToCapitalize(string str)
+        {
+            if (string.IsNullOrEmpty(str)) return string.Empty;
+
+            if (str.Length == 1)
+                return char.ToUpper(str[0]).ToString();
+            else
+                return char.ToUpper(str[0]) + str.Substring(1);
+        }
     }
 }

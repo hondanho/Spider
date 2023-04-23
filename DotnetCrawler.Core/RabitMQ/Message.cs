@@ -18,9 +18,11 @@ namespace DotnetCrawler.Core.RabitMQ
     public class PostMessage
     {
         public LinkModel LinkPost { get; set; }
+        public string StatusPost { get; set; }
         public bool IsDuplicate { get; set; }
         public string CategorySlug { get; set; }
         public SiteConfigDb SiteConfigDb { get; set; }
+        public int Index { get; set; }
     }
 
     public class PostDetailMessage
@@ -35,6 +37,7 @@ namespace DotnetCrawler.Core.RabitMQ
         public string PostSlug { get; set; }
         public string ChapUrl { get; set; }
         public SiteConfigDb SiteConfigDb { get; set; }
+        public int Index { get; set; }
     }
     #endregion
 

@@ -43,4 +43,10 @@ namespace DotnetCrawler.Data.Constants
         public const string Source = "tw_source";
         public const string Status = "tw_status";
     }
+
+    public class PostStatus
+    {
+        public const string Completed = "Completed";
+        public const string OnGoing = "ongoing";
+    }
 }

@@ -1,6 +1,8 @@
 ﻿using DotnetCrawler.Api.Service;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using System.Text.RegularExpressions;
+using System;
 using System.Threading.Tasks;
 
 namespace DotnetCrawler.Api.Controllers

@@ -54,6 +54,16 @@ namespace DotnetCrawler.Data.Setting {
         /// </summary>
         public string PagingSelector { get; set; }
 
+        /// <summary>
+        /// Xác định paging number của trang, tính toán index chap
+        /// </summary>
+        public string PagingNumberRegex { get; set; }
+
+        /// <summary>
+        /// Số lượng chap trên 1 paging post, example: 50
+        /// </summary>
+        public int AmountChapInPost { get; set; } = 50;
+
     }
 
     public class Dictionary {
