@@ -1,7 +1,6 @@
-﻿using DotnetCrawler.Api.Service;
+﻿using DotnetCrawler.API.Service;
+using DotnetCrawler.Data.Entity;
 using DotnetCrawler.Data.Model;
-using DotnetCrawler.Data.ModelDb;
-using DotnetCrawler.Data.Models;
 using DotnetCrawler.Data.Repository;
 using DotnetCrawler.Data.Utils;
 using Microsoft.AspNetCore.Mvc;
@@ -13,7 +12,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace DotnetCrawler.Api.Controllers {
+namespace DotnetCrawler.Api.Controllers
+{
     [ApiController]
     [Route("api/[controller]")]
     public class DashboardController : ControllerBase {

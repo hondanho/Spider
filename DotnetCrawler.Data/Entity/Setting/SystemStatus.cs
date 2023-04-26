@@ -1,5 +1,5 @@
-﻿
-namespace DotnetCrawler.Data.Setting {
+﻿namespace DotnetCrawler.Data.Entity.Setting
+{
 
     public class SystemStatus
     {

@@ -1,10 +1,11 @@
-﻿using DotnetCrawler.Api.Service;
-using DotnetCrawler.Data.ModelDb;
+﻿using DotnetCrawler.API.Service;
+using DotnetCrawler.Data.Entity;
 using DotnetCrawler.Data.Repository;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
-namespace DotnetCrawler.Api.Controllers {
+namespace DotnetCrawler.Api.Controllers
+{
     [ApiController]
     [Route("api/[controller]")]
     public class SiteController : ControllerBase {

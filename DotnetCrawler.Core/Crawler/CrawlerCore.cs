@@ -1,9 +1,8 @@
 ﻿using DotnetCrawler.Base.Extension;
 using DotnetCrawler.Core.RabitMQ;
 using DotnetCrawler.Data.Constants;
+using DotnetCrawler.Data.Entity;
 using DotnetCrawler.Data.Model;
-using DotnetCrawler.Data.ModelDb;
-using DotnetCrawler.Data.Models;
 using DotnetCrawler.Data.Repository;
 using DotnetCrawler.Downloader;
 using DotnetCrawler.Processor;

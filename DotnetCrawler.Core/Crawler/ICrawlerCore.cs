@@ -1,9 +1,10 @@
 ﻿
 using DotnetCrawler.Core.RabitMQ;
-using DotnetCrawler.Data.ModelDb;
+using DotnetCrawler.Data.Entity;
 using System.Threading.Tasks;
 
-namespace DotnetCrawler.Core {
+namespace DotnetCrawler.Core
+{
     public interface ICrawlerCore<T> where T : class {
         Task Crawle(SiteConfigDb siteConfig, bool isUpdatePostChap = false);
         Task JobCategory(CategoryMessage categoryMessage);

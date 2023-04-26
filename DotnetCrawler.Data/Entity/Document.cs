@@ -1,7 +1,7 @@
 ﻿
 using System;
 
-namespace DotnetCrawler.Data.Models
+namespace DotnetCrawler.Data.Entity
 {
     public class Document : IDocument
     {

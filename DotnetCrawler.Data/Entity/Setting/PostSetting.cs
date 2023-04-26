@@ -1,9 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
-namespace DotnetCrawler.Data.Setting {
+namespace DotnetCrawler.Data.Entity.Setting
+{
 
-    public class PostSetting {
+    public class PostSetting
+    {
         [Required]
         /// <summary>
         /// string xpath title
@@ -66,7 +68,8 @@ namespace DotnetCrawler.Data.Setting {
 
     }
 
-    public class Dictionary {
+    public class Dictionary
+    {
         public string Key { get; set; }
         public string Value { get; set; }
         public List<string> RemoveElement { get; set; }

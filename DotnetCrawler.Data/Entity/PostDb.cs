@@ -1,7 +1,7 @@
 ﻿using DotnetCrawler.Data.Attributes;
 using System.Collections.Generic;
 
-namespace DotnetCrawler.Data.Models
+namespace DotnetCrawler.Data.Entity
 {
 
     [BsonCollection("post")]

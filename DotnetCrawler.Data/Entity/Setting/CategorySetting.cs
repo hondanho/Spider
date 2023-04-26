@@ -1,9 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
-namespace DotnetCrawler.Data.Setting {
+namespace DotnetCrawler.Data.Entity.Setting
+{
 
-    public class CategorySetting {
+    public class CategorySetting
+    {
 
         public List<CategoryModel> CategoryModels { get; set; }
         public string LinkPostSelector { get; set; }

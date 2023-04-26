@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Linq;
 using System.Threading.Tasks;
-using DotnetCrawler.Data.Models;
 using MongoDB.Driver;
+using DotnetCrawler.Data.Entity;
 
 namespace DotnetCrawler.Data.Repository
 {

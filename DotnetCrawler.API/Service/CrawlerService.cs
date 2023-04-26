@@ -1,9 +1,9 @@
 ﻿using DotnetCrawler.Core;
 using DotnetCrawler.Data.Constants;
+using DotnetCrawler.Data.Entity;
+using DotnetCrawler.Data.Entity.Setting;
 using DotnetCrawler.Data.Model;
-using DotnetCrawler.Data.ModelDb;
 using DotnetCrawler.Data.Repository;
-using DotnetCrawler.Data.Setting;
 using Hangfire;
 using Hangfire.Storage;
 using Microsoft.Extensions.Configuration;
@@ -13,7 +13,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace DotnetCrawler.Api.Service
+namespace DotnetCrawler.API.Service
 {
     public class CrawlerService : ICrawlerService
     {
@@ -80,44 +80,6 @@ namespace DotnetCrawler.Api.Service
             RecurringJob.AddOrUpdate(() => ReCrawleAllCore(false), Cron.HourInterval(hour));
         }
 
-        public async Task ClearAllJobAndQueue()
-        {
-            using (var connection = JobStorage.Current.GetConnection())
-            {
-                foreach (var recurringJob in connection.GetRecurringJobs())
-                {
-                    RecurringJob.RemoveIfExists(recurringJob.Id);
-                }
-            }
-
-            // clear queue
-            var factory = new ConnectionFactory
-            {
-                HostName = _rabitMQSettings.HostName,
-                UserName = _rabitMQSettings.UserName,
-                Password = _rabitMQSettings.Password,
-            };
-            using (var connection = factory.CreateConnection())
-            {
-                using (var channel = connection.CreateModel())
-                {
-
-                    var queues = new QueueName();
-                    FieldInfo[] fields = queues.GetType().GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
-                    var constantFields = fields.Where(f => f.IsLiteral && !f.IsInitOnly);
-
-                    foreach (var prop in constantFields)
-                    {
-                        string propValue = prop.GetValue(queues)?.ToString();
-
-                        if (!string.IsNullOrEmpty(propValue))
-                        {
-                            channel.QueueDelete(propValue);
-                        }
-                    }
-                }
-            }
-        }
 
         [DisableConcurrentExecution(timeoutInSeconds: 10 * 60)]
         public async Task Crawler(SiteConfigDb siteConfig)

@@ -1,8 +1,7 @@
 ﻿using DotnetCrawler.Data.Attributes;
-using DotnetCrawler.Data.Models;
-using DotnetCrawler.Data.Setting;
+using DotnetCrawler.Data.Entity.Setting;
 
-namespace DotnetCrawler.Data.ModelDb
+namespace DotnetCrawler.Data.Entity
 {
     [BsonCollection("siteconfig")]
     public class SiteConfigDb : Document
@@ -11,6 +10,6 @@ namespace DotnetCrawler.Data.ModelDb
         public CategorySetting CategorySetting { get; set; }
         public ChapSetting ChapSetting { get; set; }
         public PostSetting PostSetting { get; set; }
-        public SystemStatus SystemStatus { get; set; } 
+        public SystemStatus SystemStatus { get; set; }
     }
 }

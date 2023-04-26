@@ -9,6 +9,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using MongoDB.Driver.Core.Configuration;
+using DotnetCrawler.Data.Entity;
 
 namespace DotnetCrawler.Data.Repository
 {

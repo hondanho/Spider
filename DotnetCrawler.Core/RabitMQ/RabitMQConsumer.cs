@@ -10,7 +10,7 @@ using System.Threading;
 using DotnetCrawler.Data.Constants;
 using DotnetCrawler.Data.Model;
 using Hangfire;
-using DotnetCrawler.Data.ModelDb;
+using DotnetCrawler.Data.Entity;
 
 namespace DotnetCrawler.Core.RabitMQ
 {
@@ -20,14 +20,12 @@ namespace DotnetCrawler.Core.RabitMQ
         private IModel _modelChannel;
         private ConnectionFactory _connectionFactory;
         private readonly ICrawlerCore<SiteConfigDb> _crawlerCore;
-        private readonly IWordpressSyncCore _wordpressSyncCore;
 
         delegate void ConsumerCrawleDelegate(string queueName);
 
         public RabitMQConsumer(
             IRabitMQSettings rabitMQSettings,
-            ICrawlerCore<SiteConfigDb> dotnetCrawlerCore,
-            IWordpressSyncCore wordpressSyncCore
+            ICrawlerCore<SiteConfigDb> dotnetCrawlerCore
             )
         {
 
@@ -41,15 +39,11 @@ namespace DotnetCrawler.Core.RabitMQ
             _connection = _connectionFactory.CreateConnection();
             _modelChannel = _connection.CreateModel();
             _crawlerCore = dotnetCrawlerCore;
-            _wordpressSyncCore = wordpressSyncCore;
 
             QueueDeclare(QueueName.QueueCrawleCategory);
             QueueDeclare(QueueName.QueueCrawlePost);
             QueueDeclare(QueueName.QueueCrawlePostDetail);
             QueueDeclare(QueueName.QueueCrawleChap);
-
-            QueueDeclare(QueueName.QueueSyncPost);
-            QueueDeclare(QueueName.QueueSyncChap);
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
@@ -59,8 +53,6 @@ namespace DotnetCrawler.Core.RabitMQ
             ConsumerCrawlePostDetail();
             ConsumerCrawleChap();
 
-            ConsumerSyncPost();
-            ConsumerSyncChap();
             return Task.CompletedTask;
         }
         public Task StopAsync(CancellationToken cancellationToken)
@@ -78,7 +70,7 @@ namespace DotnetCrawler.Core.RabitMQ
                 autoDelete: false
             );
         }
-       
+
         private void ConsumerCrawleCategory()
         {
             var consumer = new EventingBasicConsumer(_modelChannel);
@@ -177,50 +169,6 @@ namespace DotnetCrawler.Core.RabitMQ
                 }
             };
             _modelChannel.BasicConsume(queue: QueueName.QueueCrawleChap, autoAck: true, consumer: consumer);
-        }
-
-        private void ConsumerSyncPost() {
-            var consumer = new EventingBasicConsumer(_modelChannel);
-            consumer.Received += (model, ea) => {
-                var body = ea.Body.ToArray();
-                var bodyString = Encoding.UTF8.GetString(body);
-
-                if(!string.IsNullOrEmpty(bodyString)) {
-                    var message = JsonSerializer.Deserialize<PostSyncMessage>(bodyString);
-                    BackgroundJob.Enqueue(() => _wordpressSyncCore.JobSyncPost(message));
-
-                    DisplayInfo<string>
-                    .For("Received Sync Post")
-                    .SetExchange("")
-                    .SetQueue(QueueName.QueueSyncPost)
-                    .SetRoutingKey(QueueName.QueueSyncPost)
-                    .SetVirtualHost(_connectionFactory.VirtualHost)
-                    .Display(Color.Yellow);
-                }
-            };
-            _modelChannel.BasicConsume(queue: QueueName.QueueSyncPost, autoAck: true, consumer: consumer);
-        }
-
-        private void ConsumerSyncChap() {
-            var consumer = new EventingBasicConsumer(_modelChannel);
-            consumer.Received += (model, ea) => {
-                var body = ea.Body.ToArray();
-                var bodyString = Encoding.UTF8.GetString(body);
-
-                if(!string.IsNullOrEmpty(bodyString)) {
-                    var message = JsonSerializer.Deserialize<ChapSyncMessage>(bodyString);
-                    BackgroundJob.Enqueue(() => _wordpressSyncCore.JobSyncChap(message));
-
-                    DisplayInfo<string>
-                    .For("Received Sync Chap")
-                    .SetExchange("")
-                    .SetQueue(QueueName.QueueSyncChap)
-                    .SetRoutingKey(QueueName.QueueSyncChap)
-                    .SetVirtualHost(_connectionFactory.VirtualHost)
-                    .Display(Color.Yellow);
-                }
-            };
-            _modelChannel.BasicConsume(queue: QueueName.QueueSyncChap, autoAck: true, consumer: consumer);
         }
     }
 }

@@ -1,9 +1,10 @@
-﻿using DotnetCrawler.Data.Models;
+﻿using DotnetCrawler.Data.Entity;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace DotnetCrawler.Data.Model {
+namespace DotnetCrawler.Data.Model
+{
     public class CountSiteInfo {
         public long Category { get; set; }
         public long Post { get; set; }

@@ -1,7 +1,6 @@
 ﻿using DotnetCrawler.Base.Extension;
 using DotnetCrawler.Data.Constants;
-using DotnetCrawler.Data.ModelDb;
-using DotnetCrawler.Data.Models;
+using DotnetCrawler.Data.Entity;
 using HtmlAgilityPack;
 using HtmlAgilityPack.CssSelectors.NetCore;
 using System;

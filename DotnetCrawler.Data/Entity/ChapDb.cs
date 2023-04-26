@@ -1,6 +1,6 @@
 ﻿using DotnetCrawler.Data.Attributes;
 
-namespace DotnetCrawler.Data.Models
+namespace DotnetCrawler.Data.Entity
 {
 
     [BsonCollection("chap")]

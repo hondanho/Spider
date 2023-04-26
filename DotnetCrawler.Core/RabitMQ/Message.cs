@@ -1,7 +1,5 @@
-﻿using DotnetCrawler.Data.Entity.Mongo.Log;
+﻿using DotnetCrawler.Data.Entity;
 using DotnetCrawler.Data.Model;
-using DotnetCrawler.Data.ModelDb;
-using DotnetCrawler.Data.Models;
 using System.Collections.Generic;
 using WordPressPCL.Models;
 
@@ -38,29 +36,6 @@ namespace DotnetCrawler.Core.RabitMQ
         public string ChapUrl { get; set; }
         public SiteConfigDb SiteConfigDb { get; set; }
         public int Index { get; set; }
-    }
-    #endregion
-
-    #region queue messasge sync
-    public class PostSyncMessage
-    {
-        public List<int> CategoryIds { get; set; }
-        public List<int> TacGiaIds { get; set; }
-        public string MetaStatus { get; set; }
-        public string MetaAlternativeName { get; set; }
-        public string MetaSource { get; set; }
-        public PostDb PostDb { get; set; }
-        public PostLog PostLog { get; set; }
-        public string CategorySlug { get; set; }
-        public SiteConfigDb SiteConfigDb { get; set; }
-        public List<Category> Categories { get; set; }
-    }
-
-    public class ChapSyncMessage
-    {
-        public int PostWpId { get; set; }
-        public SiteConfigDb SiteConfigDb { get; set; }
-        public ChapDb ChapDb { get; set; }
     }
     #endregion
 }

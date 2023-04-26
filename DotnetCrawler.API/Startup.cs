@@ -1,6 +1,5 @@
 using DotnetCrawler.Data.Models;
 using DotnetCrawler.Data.Repository;
-using DotnetCrawler.Api.Service;
 using Hangfire;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -11,13 +10,13 @@ using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using DotnetCrawler.Core;
 using Microsoft.AspNetCore.Http.Features;
-using DotnetCrawler.API.Service.Wordpress;
 using DotnetCrawler.Data.Model;
 using DotnetCrawler.Core.RabitMQ;
 using Hangfire.Console;
 using Hangfire.MemoryStorage;
 using System;
 using Hangfire.Dashboard;
+using DotnetCrawler.API.Service;
 
 namespace DotnetCrawler.Api
 {
@@ -63,8 +62,6 @@ namespace DotnetCrawler.Api
 
             services.AddSingleton(typeof(ICrawlerCore<>), typeof(CrawlerCore<>));
             services.AddScoped<ICrawlerService, CrawlerService>();
-            services.AddSingleton<IWordpressSyncCore, WordpressSyncCore>();
-            services.AddSingleton<IWordpressService, WordpressService>();
 
             services.Configure<FormOptions>(options => {
                 options.ValueLengthLimit = int.MaxValue;
@@ -79,7 +76,7 @@ namespace DotnetCrawler.Api
                 app.UseDeveloperExceptionPage();
             }
             app.UseSwagger();
-            app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "AspNetCoreMongoDb v1"));
+            app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "AspNetCore 3.1 MongoDb v1"));
             app.UseHttpsRedirection();
             app.UseRouting();
             app.UseAuthorization();

@@ -1,9 +1,11 @@
 ﻿
 using System.Collections.Generic;
 
-namespace DotnetCrawler.Data.Setting {
+namespace DotnetCrawler.Data.Entity.Setting
+{
 
-    public class BasicSetting {
+    public class BasicSetting
+    {
         public string Name { get; set; }
         public bool CheckDuplicateSlugPost { get; set; }
         public bool CheckDuplicateTitlePost { get; set; }
@@ -15,7 +17,7 @@ namespace DotnetCrawler.Data.Setting {
         public string Document { get; set; }
         public string Domain { get; set; }
         public List<string> Proxys { get; set; }
-        public string UserAgent { get; set; }   
+        public string UserAgent { get; set; }
         public string WordpressUriApi { get; set; }
         public string WordpressUserName { get; set; }
         public string WordpressPassword { get; set; }

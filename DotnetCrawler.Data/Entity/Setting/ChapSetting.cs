@@ -5,9 +5,11 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 
-namespace DotnetCrawler.Data.Setting {
+namespace DotnetCrawler.Data.Entity.Setting
+{
 
-    public class ChapSetting {
+    public class ChapSetting
+    {
         [Required]
         public string Titlte { get; set; }
         [Required]

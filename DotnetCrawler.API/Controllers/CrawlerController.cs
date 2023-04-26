@@ -1,9 +1,9 @@
-﻿using DotnetCrawler.Api.Service;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using System.Text.RegularExpressions;
 using System;
 using System.Threading.Tasks;
+using DotnetCrawler.API.Service;
 
 namespace DotnetCrawler.Api.Controllers
 {
@@ -60,13 +60,6 @@ namespace DotnetCrawler.Api.Controllers
         {
             hour = hour ?? scheduleHourUpdatePostChap;
             await _crawlerService.UpdatePostChapScheduleAll(hour.Value);
-        }
-
-        [HttpPost]
-        [Route("clear-all")]
-        public async Task ClearAllJobAndQueue()
-        {
-            await _crawlerService.ClearAllJobAndQueue();
         }
     }
 }
