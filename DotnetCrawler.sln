@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DotnetCrawler.Data", "Dotne
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DotnetCrawler.Core", "DotnetCrawler.Core\DotnetCrawler.Core.csproj", "{022684CF-07C9-40B9-905F-3723AD316C9E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DotnetCrawler.API", "DotnetCrawler.Schedule\DotnetCrawler.API.csproj", "{6300785D-A334-4A21-8735-A97848766891}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DotnetCrawler.API", "DotnetCrawler.API\DotnetCrawler.API.csproj", "{6300785D-A334-4A21-8735-A97848766891}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

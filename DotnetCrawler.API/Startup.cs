@@ -17,6 +17,7 @@ using DotnetCrawler.Core.RabitMQ;
 using Hangfire.Console;
 using Hangfire.MemoryStorage;
 using System;
+using Hangfire.Dashboard;
 
 namespace DotnetCrawler.Api
 {
@@ -76,18 +77,28 @@ namespace DotnetCrawler.Api
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env) {
             if(env.IsDevelopment()) {
                 app.UseDeveloperExceptionPage();
-                app.UseSwagger();
-                app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "AspNetCoreMongoDb v1"));
             }
-
+            app.UseSwagger();
+            app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "AspNetCoreMongoDb v1"));
             app.UseHttpsRedirection();
             app.UseRouting();
             app.UseAuthorization();
-            app.UseHangfireDashboard("/worker");
+            app.UseHangfireDashboard("/worker", new DashboardOptions()
+            {
+                Authorization = new[] { new AllowAllDashboardAuthorizationFilter() }
+            });
             app.UseEndpoints(endpoints => {
                 endpoints.MapControllers();
             });
 
+        }
+    }
+
+    public class AllowAllDashboardAuthorizationFilter : IDashboardAuthorizationFilter
+    {
+        public bool Authorize(DashboardContext context)
+        {
+            return true;
         }
     }
 }
