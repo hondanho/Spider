@@ -1,4 +1,5 @@
-﻿using DotnetCrawler.Base.Extension;
+﻿using Amazon.Runtime.Internal;
+using DotnetCrawler.Base.Extension;
 using DotnetCrawler.Core.RabitMQ;
 using DotnetCrawler.Data.Constants;
 using DotnetCrawler.Data.Entity;
@@ -11,11 +12,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using WordPressPCL.Models;
+using PostStatus = DotnetCrawler.Data.Constants.PostStatus;
 
-namespace DotnetCrawler.Core
-{
-    public class CrawlerCore<T> : ICrawlerCore<T> where T : class
-    {
+namespace DotnetCrawler.Core {
+    public class CrawlerCore<T> : ICrawlerCore<T> where T : class {
         private readonly IMongoRepository<PostDb> _postDbRepository;
         private readonly IMongoRepository<ChapDb> _chapDbRepository;
         private readonly IMongoRepository<CategoryDb> _categoryDbRepository;
@@ -26,124 +27,86 @@ namespace DotnetCrawler.Core
         private string databaseName { get; set; }
 
         public CrawlerCore(
-            IMongoRepository<PostDb> postDbRepository,
-            IMongoRepository<ChapDb> chapDbRepository,
             IRabitMQProducer rabitMQProducer,
             IConfiguration configuration,
-            IMongoRepository<CategoryDb> categoryDbRepository)
-        {
+            IMongoRepository<PostDb> postDbRepository,
+            IMongoRepository<ChapDb> chapDbRepository,
+            IMongoRepository<SiteConfigDb> siteConfigDbRepository,
+            IMongoRepository<CategoryDb> categoryDbRepository) {
             _postDbRepository = postDbRepository;
             _chapDbRepository = chapDbRepository;
             _categoryDbRepository = categoryDbRepository;
             _rabitMQProducer = rabitMQProducer;
+            _siteConfigDbRepository = siteConfigDbRepository;
+
             databaseName = configuration.GetValue<string>("MongoDbSettings:DatabaseName");
         }
 
         /// <summary>
         /// Save catgegory Data, add url category to category-queue
         /// </summary>
-        /// <param name="isUpdatePostChap"></param>
-        /// <returns></returns>
-        public async Task<bool> Crawle(bool isUpdatePostChap = false)
-        {
-
-            var isRerawler = true;
+        public async Task<bool> Crawle(bool isUpdatePostChap = false) {
+            var isCrarwler = false;
             var siteConfigs = _siteConfigDbRepository.AsQueryable().ToList();
+            if(siteConfigs.Any()) {
+                foreach(var siteConfig in siteConfigs) {
+                    SetDocumentDb(databaseName);
+                    var categoryModels = siteConfig.CategorySetting.CategoryModels;
 
-            if (siteConfigs.Any())
-            {
-                foreach (var siteConfig in siteConfigs)
-                {
-                    var isCrawler = await _crawlerCore.Crawle(siteConfig, false);
-                    if (isCrawler)
-                    {
-                        isRerawler = false;
-                        break;
-                    }
-                }
-            }
+                    // add worker categoryDb
+                    if(categoryModels.Any()) {
+                        var categoryDbs = _categoryDbRepository.FilterBy(cdb => categoryModels.Any(cgm => cgm.Slug == cdb.Slug)).ToList();
 
-            if (isRerawler)
-            {
-                foreach (var siteConfig in siteConfigs)
-                {
-                    await _crawlerCore.Crawle(siteConfig, true);
-                }
-            }
+                        foreach(var category in categoryModels) {
+                            if(!string.IsNullOrEmpty(category?.Slug) && !string.IsNullOrEmpty(category?.Titlte) && !string.IsNullOrEmpty(category?.Url)) {
+                                var slugCategory = Helper.CleanSlug(category.Slug);
+                                var categoryDb = categoryDbs.FirstOrDefault(cdb => cdb.Slug == slugCategory);
+                                var isNewCategory = true;
 
-            var result = false;
-            SetDocumentDb(siteConfigDb.BasicSetting.Document);
+                                // insert category
+                                if(categoryDb == null) {
+                                    categoryDb = new CategoryDb() {
+                                        Slug = slugCategory,
+                                        Titlte = category.Titlte
+                                    };
+                                    await _categoryDbRepository.InsertOneAsync(categoryDb);
+                                    Console.WriteLine(string.Format("CATEGORY NEW: Id: {0}, Slug: {0}, Title: {1}", categoryDb.Id, categoryDb.Slug, categoryDb.Titlte));
+                                    isNewCategory = true;
+                                } else {
+                                    Console.WriteLine(string.Format("CATEGORY EXIST: Slug: {0}, Title: {1}", categoryDb.Slug, categoryDb.Titlte));
+                                    isNewCategory = false;
+                                }
 
-            siteConfigDb.BasicSetting.IsUpdatePostChap = isUpdatePostChap;
-            var categoryModels = siteConfigDb.CategorySetting.CategoryModels;
+                                // check recrawler
+                                var urlCategoryCrawle = isNewCategory ? category.Url : categoryDb.UrlCategoryPagingNext;
+                                if(isUpdatePostChap && string.IsNullOrEmpty(categoryDb.UrlCategoryPagingNext)) {
+                                    var isExistNewPost = await CheckExistNewPost(siteConfig, categoryDb.UrlCategoryPagingLatest, categoryDb);
+                                    if(isExistNewPost) {
+                                        await JobCategory(siteConfig, categoryDb.UrlCategoryPagingLatest, categoryDb);
+                                        isCrarwler = true;
+                                        break;
+                                    }
+                                }
 
-            // add worker categoryDb
-            if (categoryModels.Any())
-            {
-                var categoryDbs = _categoryDbRepository.FilterBy(cdb => categoryModels.Any(cgm => cgm.Slug == cdb.Slug)).ToList();
-
-
-                foreach (var category in categoryModels)
-                {
-                    if (!string.IsNullOrEmpty(category?.Slug) && !string.IsNullOrEmpty(category?.Titlte) && !string.IsNullOrEmpty(category?.Url))
-                    {
-                        var slugCategory = Helper.CleanSlug(category.Slug);
-                        var categoryDb = categoryDbs.FirstOrDefault(cdb => cdb.Slug == slugCategory);
-                        if (categoryDb == null)
-                        {
-                            categoryDb = new CategoryDb()
-                            {
-                                Slug = slugCategory,
-                                Titlte = category.Titlte
-                            };
-                            await _categoryDbRepository.InsertOneAsync(categoryDb);
-                            Console.WriteLine(string.Format("CATEGORY NEW: Id: {0}, Slug: {0}, Title: {1}", categoryDb.Id, categoryDb.Slug, categoryDb.Titlte));
-                            _rabitMQProducer.SendMessage<CategoryMessage>(QueueName.QueueCrawleCategory, new CategoryMessage()
-                            {
-                                UrlCategoryCrawleNext = category.Url,
-                                CategoryDb = categoryDb,
-                                SiteConfigDb = siteConfigDb
-                            });
-                            result = true;
-                            break;
-                        }
-                        else
-                        {
-                            Console.WriteLine(string.Format("CATEGORY EXIST: Slug: {0}, Title: {1}", categoryDb.Slug, categoryDb.Titlte));
-                            // check la update post chap
-                            var urlCategoryCrawleNext = isUpdatePostChap &&
-                                !string.IsNullOrEmpty(categoryDb.UrlCrawlePostPagingLatest) &&
-                                !siteConfigDb.PostSetting.IsHasChapter
-                                                            ? categoryDb.UrlCrawlePostPagingLatest : category.Url;
-                            _rabitMQProducer.SendMessage<CategoryMessage>(QueueName.QueueCrawleCategory, new CategoryMessage()
-                            {
-                                UrlCategoryCrawleNext = urlCategoryCrawleNext,
-                                CategoryDb = categoryDb,
-                                SiteConfigDb = siteConfigDb
-                            });
+                                if(!string.IsNullOrEmpty(urlCategoryCrawle)) {
+                                    await JobCategory(siteConfig, urlCategoryCrawle, categoryDb);
+                                    isCrarwler = true;
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
             }
 
-            return result;
+            return isCrarwler;
         }
 
         /// <summary>
         /// Downloader url category, add next url category to category-queue, add url post to post-queue
         /// </summary>
         /// <param name="categoryMessage"></param>
-        public async Task JobCategory(CategoryMessage categoryMessage)
-        {
-            var request = categoryMessage.SiteConfigDb;
-            var categoryUrl = categoryMessage.UrlCategoryCrawleNext;
-            var CategorySlug = categoryMessage.CategoryDb.Slug;
-            var domain = categoryMessage.SiteConfigDb.BasicSetting.Domain;
-            var isUpdatePostChap = request.BasicSetting.IsUpdatePostChap;
-            var document = request.BasicSetting.Document ?? databaseName;
-
-            SetDocumentDb(document);
-
+        public async Task JobCategory(SiteConfigDb request, string categoryUrl, CategoryDb categoryDb) {
             var htmlDocumentCategory = await DotnetCrawlerDownloader.Download(
                     categoryUrl,
                     downloadPath,
@@ -151,129 +114,99 @@ namespace DotnetCrawler.Core
                     request.BasicSetting.UserAgent,
                     DotnetCrawlerDownloaderType.FromMemory
                 );
-            var postUrlModels = await DotnetCrawlerPageLinkReader.GetPageLinkModel(htmlDocumentCategory, request.CategorySetting.LinkPostSelector, domain);
-            if (!postUrlModels.Any())
-            {
+
+            var postUrlModels = await DotnetCrawlerPageLinkReader.GetPageLinkModel(htmlDocumentCategory, request.CategorySetting.LinkPostSelector, request.BasicSetting.Domain);
+            if(!postUrlModels.Any()) {
                 return;
             }
-
             var pageCategoryNumber = 1;
-            if (!string.IsNullOrEmpty(categoryUrl))
-            {
+            if(!string.IsNullOrEmpty(categoryUrl)) {
                 pageCategoryNumber = Helper.GetPageNumberFromRegex(categoryUrl, request.CategorySetting.PagingNumberRegex);
             }
-
             var postDbServers = _postDbRepository.FilterBy(pdb =>
-                            pdb.CategorySlug == CategorySlug &&
+                            pdb.CategorySlug == categoryDb.Slug &&
                             postUrlModels.Any(lp => lp.Slug == pdb.Slug || lp.Titlte == pdb.Titlte)
                         ).ToList() ?? new List<PostDb>();
-
-            for (int i = 0; i < postUrlModels.Count(); i++)
-            {
+            for(int i = 0; i < postUrlModels.Count(); i++) {
                 var postUrlModel = postUrlModels.ToList()[i];
-                if (!string.IsNullOrEmpty(postUrlModel.Slug) && !string.IsNullOrEmpty(postUrlModel.Titlte) && !string.IsNullOrEmpty(postUrlModel.Url))
-                {
+                if(!string.IsNullOrEmpty(postUrlModel.Slug) && !string.IsNullOrEmpty(postUrlModel.Titlte) && !string.IsNullOrEmpty(postUrlModel.Url)) {
                     var isDuplicatePost = IsDuplicatePost(request, postDbServers, postUrlModel);
                     var postDb = postDbServers.FirstOrDefault(pdb =>
                                 (request.BasicSetting.CheckDuplicateSlugPost ? pdb.Slug == postUrlModel.Slug : true) &&
                                 (request.BasicSetting.CheckDuplicateTitlePost ? pdb.Titlte == postUrlModel.Titlte : true)
                             );
                     // check completed then continue
-                    if (isUpdatePostChap && postDb.Status == PostStatus.Completed) continue;
+                    if(postDb?.Status == PostStatus.Completed)
+                        continue;
 
                     // check la update post chap
-                    if (isUpdatePostChap &&
-                        !string.IsNullOrEmpty(postDb?.UrlCrawlePostPagingLatest) &&
-                        request.PostSetting.IsHasChapter)
-                    {
-                        postUrlModel.Url = postDb.UrlCrawlePostPagingLatest;
+                    if(!string.IsNullOrEmpty(postDb?.UrlPostPagingCrawleNext) && request.PostSetting.IsHasChapter) {
+                        postUrlModel.Url = postDb.UrlPostPagingCrawleNext;
                     }
 
                     var index = (pageCategoryNumber - 1) * request.CategorySetting.AmountPostInCategory + (i + 1);
 
-                    _rabitMQProducer.SendMessage<PostMessage>(QueueName.QueueCrawlePost, new PostMessage()
-                    {
+                    _rabitMQProducer.SendMessage<PostMessage>(QueueName.QueueCrawlePost, new PostMessage() {
                         SiteConfigDb = request,
-                        CategorySlug = CategorySlug,
-                        LinkPost = postUrlModel,
+                        CategorySlug = categoryDb.Slug,
+                        LinkPostCrawle = postUrlModel,
                         IsDuplicate = isDuplicatePost,
-                        StatusPost = postDb?.Status ?? string.Empty,
                         Index = index
                     });
                 }
             }
 
-            var urlCategoryNext = (await DotnetCrawlerPageLinkReader.GetLinks(htmlDocumentCategory, request.CategorySetting.PagingSelector, domain)).FirstOrDefault();
-            if (string.IsNullOrEmpty(urlCategoryNext))
-            {
-                return;
-            }
-
-            _rabitMQProducer.SendMessage<CategoryMessage>(QueueName.QueueCrawleCategory, new CategoryMessage()
-            {
-                UrlCategoryCrawleNext = urlCategoryNext,
-                SiteConfigDb = request,
-                CategoryDb = categoryMessage.CategoryDb
-            });
-
-            if (!request.PostSetting.IsHasChapter)
-            {
-                categoryMessage.CategoryDb.UrlCrawlePostPagingLatest = urlCategoryNext;
-                await _categoryDbRepository.ReplaceOneAsync(categoryMessage.CategoryDb);
-            }
+            // save next url process
+            var urlCategoryNext = (
+                    await DotnetCrawlerPageLinkReader.GetLinks(
+                    htmlDocumentCategory,
+                    request.CategorySetting.PagingSelector,
+                    request.BasicSetting.Domain)
+                ).FirstOrDefault();
+            categoryDb.UrlCategoryPagingNext = urlCategoryNext;
+            categoryDb.UrlCategoryPagingLatest = categoryUrl;
+            await _categoryDbRepository.ReplaceOneAsync(categoryDb);
         }
 
         /// <summary>
         /// Downloader post data and save, add url post to queue
         /// </summary>
         /// <param name="postMessage"></param>
-        public async Task JobPost(PostMessage postMessage)
-        {
+        public async Task JobPost(PostMessage postMessage) {
             var request = postMessage.SiteConfigDb;
             var categorySlug = postMessage.CategorySlug;
-            var linkPostModel = postMessage.LinkPost;
+            var linkPostCrawle = postMessage.LinkPostCrawle;
             var isDuplicate = postMessage.IsDuplicate;
             var index = postMessage.Index;
-            var status = postMessage.StatusPost;
-            var document = request.BasicSetting.Document ?? databaseName;
-            SetDocumentDb(document);
+            SetDocumentDb(databaseName);
 
-            if (!request.PostSetting.IsHasChapter && isDuplicate)
-            {
-                Console.WriteLine(string.Format("POST EXIST: Title: {0}, Slug: {1}, Date: {2}", linkPostModel.Titlte, linkPostModel.Slug, DateTime.Now));
+            if(!request.PostSetting.IsHasChapter && isDuplicate) {
+                Console.WriteLine(string.Format("POST EXIST: Title: {0}, Slug: {1}, Date: {2}", linkPostCrawle.Titlte, linkPostCrawle.Slug, DateTime.Now));
                 return;
             }
 
             var htmlDocumentPost = await DotnetCrawlerDownloader.Download(
-                    linkPostModel.Url,
+                    linkPostCrawle.Url,
                     downloadPath,
                     request.BasicSetting.Proxys,
                     request.BasicSetting.UserAgent,
                     DotnetCrawlerDownloaderType.FromMemory
                 );
-            var post = await CrawlerProcessor.PostProcess(request, categorySlug, linkPostModel.Url, index, htmlDocumentPost, document);
+            var post = await CrawlerProcessor.PostProcess(request, categorySlug, linkPostCrawle.Url, index, htmlDocumentPost, databaseName);
 
-            if (!isDuplicate)
-            {
+            if(!isDuplicate) {
                 await _postDbRepository.InsertOneAsync(post);
                 Console.WriteLine(string.Format("POST NEW: Id: {0}, Index: {1}, Title: {2}, Slug: {3}, Date: {4}", post.Id, post.Index, post.Titlte, post.Slug, DateTime.Now));
-            }
-            else if (post.Status != status)
-            {
-                Console.WriteLine(string.Format("POST UPDATED: Title: {0}, Slug: {1}, Date: {2}", linkPostModel.Titlte, linkPostModel.Slug, DateTime.Now));
-            } else
-            {
-                Console.WriteLine(string.Format("POST EXIST: Title: {0}, Slug: {1}, Date: {2}", linkPostModel.Titlte, linkPostModel.Slug, DateTime.Now));
+            } else {
+                Console.WriteLine(string.Format("POST EXIST: Title: {0}, Slug: {1}, Date: {2}", linkPostCrawle.Titlte, linkPostCrawle.Slug, DateTime.Now));
             }
 
             // get info chap
-            if (request.PostSetting.IsHasChapter && !(post.Status == PostStatus.Completed && status == PostStatus.Completed))
-            {
-                _rabitMQProducer.SendMessage<PostDetailMessage>(QueueName.QueueCrawlePostDetail, new PostDetailMessage()
-                {
+            if(request.PostSetting.IsHasChapter) {
+                _rabitMQProducer.SendMessage<PostDetailMessage>(QueueName.QueueCrawlePostDetail, new PostDetailMessage() {
                     SiteConfigDb = request,
                     PostDb = post,
-                    UrlPostCrawleNext = linkPostModel.Url
+                    UrlPostCrawleNext = linkPostCrawle.Url
                 });
             }
         }
@@ -282,10 +215,9 @@ namespace DotnetCrawler.Core
         /// Download url post, add next url post to post-detail-queue, add url chap to queue
         /// </summary>
         /// <param name="postDetailMessage"></param>
-        public async Task JobPostDetail(PostDetailMessage postDetailMessage)
-        {
+        public async Task JobPostDetail(PostDetailMessage postDetailMessage) {
             var request = postDetailMessage.SiteConfigDb;
-            SetDocumentDb(request.BasicSetting.Document);
+            SetDocumentDb(databaseName);
 
             var postUrl = postDetailMessage.UrlPostCrawleNext;
             var postSlug = postDetailMessage.PostDb.Slug;
@@ -299,14 +231,12 @@ namespace DotnetCrawler.Core
                     DotnetCrawlerDownloaderType.FromMemory
                 );
             var chapUrlModels = await DotnetCrawlerPageLinkReader.GetPageLinkModel(htmlDocumentPost, request.PostSetting.LinkChapSelector, domain);
-            if (!chapUrlModels.Any())
-            {
+            if(!chapUrlModels.Any()) {
                 return;
             }
 
             var pagePostNumber = 1;
-            if (!string.IsNullOrEmpty(postUrl))
-            {
+            if(!string.IsNullOrEmpty(postUrl)) {
                 pagePostNumber = Helper.GetPageNumberFromRegex(postUrl, request.PostSetting.PagingNumberRegex);
             }
 
@@ -315,21 +245,17 @@ namespace DotnetCrawler.Core
                     chapUrlModels.Any(lp => lp.Slug == pdb.Slug || lp.Titlte == pdb.Titlte)
                 ).ToList();
 
-            for (int i = 0; i < chapUrlModels.Count(); i++)
-            {
+            for(int i = 0; i < chapUrlModels.Count(); i++) {
                 var chapUrlModel = chapUrlModels.ToList()[i];
-                if (!string.IsNullOrEmpty(chapUrlModel.Slug) && !string.IsNullOrEmpty(chapUrlModel.Titlte) && !string.IsNullOrEmpty(chapUrlModel.Url))
-                {
+                if(!string.IsNullOrEmpty(chapUrlModel.Slug) && !string.IsNullOrEmpty(chapUrlModel.Titlte) && !string.IsNullOrEmpty(chapUrlModel.Url)) {
                     var isDuplicateChap = IsDuplicateChap(request, chapDbServers, chapUrlModel);
-                    if (isDuplicateChap)
-                    {
+                    if(isDuplicateChap) {
                         Console.WriteLine(string.Format("CHAP EXIST: Title: {0}, Slug: {1}", chapUrlModel.Titlte, chapUrlModel.Slug));
                         continue;
                     }
 
                     var index = (pagePostNumber - 1) * request.PostSetting.AmountChapInPost + (i + 1);
-                    _rabitMQProducer.SendMessage<ChapMessage>(QueueName.QueueCrawleChap, new ChapMessage()
-                    {
+                    _rabitMQProducer.SendMessage<ChapMessage>(QueueName.QueueCrawleChap, new ChapMessage() {
                         SiteConfigDb = request,
                         PostSlug = postSlug,
                         ChapUrl = chapUrlModel.Url,
@@ -339,26 +265,24 @@ namespace DotnetCrawler.Core
             }
 
             var postUrlNext = (await DotnetCrawlerPageLinkReader.GetLinks(htmlDocumentPost, request.PostSetting.PagingSelector, domain)).FirstOrDefault();
-            if (string.IsNullOrEmpty(postUrlNext))
-            {
+            if(string.IsNullOrEmpty(postUrlNext)) {
                 return;
             }
 
-            _rabitMQProducer.SendMessage<PostDetailMessage>(QueueName.QueueCrawlePostDetail, new PostDetailMessage()
-            {
+            _rabitMQProducer.SendMessage<PostDetailMessage>(QueueName.QueueCrawlePostDetail, new PostDetailMessage() {
                 SiteConfigDb = request,
                 PostDb = postDetailMessage.PostDb,
                 UrlPostCrawleNext = postUrlNext
             });
 
-            postDetailMessage.PostDb.UrlCrawlePostPagingLatest = postUrlNext;
+            postDetailMessage.PostDb.UrlPostPagingCrawleNext = postUrlNext;
+            postDetailMessage.PostDb.UrlPostPagingCrawleLatest = postUrl;
             await _postDbRepository.ReplaceOneAsync(postDetailMessage.PostDb);
         }
 
-        public async Task JobChap(ChapMessage chapMessage)
-        {
+        public async Task JobChap(ChapMessage chapMessage) {
             var request = chapMessage.SiteConfigDb;
-            SetDocumentDb(request.BasicSetting.Document);
+            SetDocumentDb(databaseName);
 
             var postSlug = chapMessage.PostSlug;
             var chapUrl = chapMessage.ChapUrl;
@@ -376,17 +300,91 @@ namespace DotnetCrawler.Core
             Console.WriteLine(string.Format("CHAP NEW: Id: {0}, Index: {1}, Title: {2}, Slug: {3}", chap.Id, chap.Index, chap.Titlte, chap.Slug));
         }
 
-        private void SetDocumentDb(string documentName)
-        {
+        private void SetDocumentDb(string documentName) {
             _postDbRepository.SetCollectionSave(documentName);
             _chapDbRepository.SetCollectionSave(documentName);
             _categoryDbRepository.SetCollectionSave(documentName);
         }
 
-        private bool IsDuplicatePost(SiteConfigDb request, IEnumerable<PostDb> postServers, LinkModel linkPost)
-        {
-            if (request.BasicSetting.CheckDuplicateTitlePost || request.BasicSetting.CheckDuplicateSlugPost || postServers.Any())
-            {
+        private async Task<bool> CheckExistNewPost(SiteConfigDb request, string urlCategory, CategoryDb categoryDb) {
+            var result = false;
+
+            if(!string.IsNullOrEmpty(urlCategory)) {
+                var htmlDocumentCategory = await DotnetCrawlerDownloader.Download(
+                    urlCategory,
+                    downloadPath,
+                    request.BasicSetting.Proxys,
+                    request.BasicSetting.UserAgent,
+                    DotnetCrawlerDownloaderType.FromMemory
+                );
+                var postUrlModels = await DotnetCrawlerPageLinkReader.GetPageLinkModel(htmlDocumentCategory, request.CategorySetting.LinkPostSelector, request.BasicSetting.Domain);
+                if(!postUrlModels.Any()) {
+                    return false;
+                }
+
+                var postDbServers = _postDbRepository.FilterBy(pdb =>
+                            pdb.CategorySlug == categoryDb.Slug &&
+                            postUrlModels.Any(lp => lp.Slug == pdb.Slug || lp.Titlte == pdb.Titlte)
+                        ).ToList() ?? new List<PostDb>();
+                if(!postDbServers.Any()) {
+                    return true;
+                }
+                for(int i = 0; i < postUrlModels.Count(); i++) {
+                    var postUrlModel = postUrlModels.ToList()[i];
+                    if(!string.IsNullOrEmpty(postUrlModel.Slug) && !string.IsNullOrEmpty(postUrlModel.Titlte) && !string.IsNullOrEmpty(postUrlModel.Url)) {
+                        var isDuplicatePost = IsDuplicatePost(request, postDbServers, postUrlModel);
+                        if(!isDuplicatePost) {
+                            result = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private async Task<bool> CheckExistNewChap(SiteConfigDb request, string urlPost, PostDb postDb) {
+            var result = false;
+
+            if(!string.IsNullOrEmpty(urlPost)) {
+                var htmlDocumentPost = await DotnetCrawlerDownloader.Download(
+                    urlPost,
+                    downloadPath,
+                    request.BasicSetting.Proxys,
+                    request.BasicSetting.UserAgent,
+                    DotnetCrawlerDownloaderType.FromMemory
+                );
+                var chapUrlModels = await DotnetCrawlerPageLinkReader.GetPageLinkModel(htmlDocumentPost, request.PostSetting.LinkChapSelector, request.BasicSetting.Domain);
+                if(!chapUrlModels.Any()) {
+                    return false;
+                }
+
+                var chapDbServers = _chapDbRepository.FilterBy(pdb =>
+                        pdb.PostSlug == postDb.Slug &&
+                        chapUrlModels.Any(lp => lp.Slug == pdb.Slug || lp.Titlte == pdb.Titlte)
+                    ).ToList();
+                if(!chapDbServers.Any()) {
+                    return true;
+                }
+
+                for(int i = 0; i < chapUrlModels.Count(); i++) {
+                    var chapUrlModel = chapUrlModels.ToList()[i];
+                    if(!string.IsNullOrEmpty(chapUrlModel.Slug) && !string.IsNullOrEmpty(chapUrlModel.Titlte) && !string.IsNullOrEmpty(chapUrlModel.Url)) {
+                        var isDuplicateChap = IsDuplicateChap(request, chapDbServers, chapUrlModel);
+                        if(!isDuplicateChap) {
+                            result = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private bool IsDuplicatePost(SiteConfigDb request, IEnumerable<PostDb> postServers, LinkModel linkPost) {
+            if(request.BasicSetting.CheckDuplicateTitlePost || request.BasicSetting.CheckDuplicateSlugPost || postServers.Any()) {
                 var postExist = postServers.FirstOrDefault(pdb =>
                                             (request.BasicSetting.CheckDuplicateSlugPost ? pdb.Slug == linkPost.Slug : true) &&
                                             (request.BasicSetting.CheckDuplicateTitlePost ? pdb.Titlte == linkPost.Titlte : true)
@@ -397,10 +395,8 @@ namespace DotnetCrawler.Core
             return false;
         }
 
-        private bool IsDuplicateChap(SiteConfigDb request, IEnumerable<ChapDb> chapServers, LinkModel linkChap)
-        {
-            if (request.BasicSetting.CheckDuplicateSlugChap || request.BasicSetting.CheckDuplicateTitleChap || chapServers.Any())
-            {
+        private bool IsDuplicateChap(SiteConfigDb request, IEnumerable<ChapDb> chapServers, LinkModel linkChap) {
+            if(request.BasicSetting.CheckDuplicateSlugChap || request.BasicSetting.CheckDuplicateTitleChap || chapServers.Any()) {
                 var chapExist = chapServers.FirstOrDefault(pdb =>
                                             (request.BasicSetting.CheckDuplicateSlugChap ? pdb.Slug == linkChap.Slug : true) &&
                                             (request.BasicSetting.CheckDuplicateTitleChap ? pdb.Titlte == linkChap.Titlte : true)

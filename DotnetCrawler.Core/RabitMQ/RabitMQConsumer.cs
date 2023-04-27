@@ -40,7 +40,6 @@ namespace DotnetCrawler.Core.RabitMQ
             _modelChannel = _connection.CreateModel();
             _crawlerCore = dotnetCrawlerCore;
 
-            QueueDeclare(QueueName.QueueCrawleCategory);
             QueueDeclare(QueueName.QueueCrawlePost);
             QueueDeclare(QueueName.QueueCrawlePostDetail);
             QueueDeclare(QueueName.QueueCrawleChap);
@@ -48,7 +47,6 @@ namespace DotnetCrawler.Core.RabitMQ
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            ConsumerCrawleCategory();
             ConsumerCrawlePost();
             ConsumerCrawlePostDetail();
             ConsumerCrawleChap();
@@ -69,30 +67,6 @@ namespace DotnetCrawler.Core.RabitMQ
                 exclusive: false,
                 autoDelete: false
             );
-        }
-
-        private void ConsumerCrawleCategory()
-        {
-            var consumer = new EventingBasicConsumer(_modelChannel);
-            consumer.Received += (model, ea) =>
-            {
-                var body = ea.Body.ToArray();
-                var bodyString = Encoding.UTF8.GetString(body);
-                if (!string.IsNullOrEmpty(bodyString))
-                {
-                    var message = JsonSerializer.Deserialize<CategoryMessage>(bodyString);
-                    BackgroundJob.Enqueue(() => _crawlerCore.JobCategory(message));
-
-                    DisplayInfo<string>
-                    .For("Received Category")
-                    .SetExchange("")
-                    .SetQueue(QueueName.QueueCrawleCategory)
-                    .SetRoutingKey(QueueName.QueueCrawleCategory)
-                    .SetVirtualHost(_connectionFactory.VirtualHost)
-                    .Display(Color.Yellow);
-                }
-            };
-            _modelChannel.BasicConsume(queue: QueueName.QueueCrawleCategory, autoAck: true, consumer: consumer);
         }
 
         private void ConsumerCrawlePost()

@@ -14,7 +14,8 @@ namespace DotnetCrawler.Data.Entity
         public string Titlte { get; set; }
         public string Description { get; set; }
         public Dictionary<string, List<string>> Metadatas { get; set; }
-        public string UrlCrawlePostPagingLatest { get; set; }
+        public string UrlPostPagingCrawleNext { get; set; }
+        public string UrlPostPagingCrawleLatest { get; set; }
         public int Index { get; set; }
     }
 }

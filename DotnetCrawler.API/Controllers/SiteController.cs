@@ -1,8 +1,12 @@
 ﻿using DotnetCrawler.API.Service;
+using DotnetCrawler.Base.Extension;
 using DotnetCrawler.Data.Entity;
 using DotnetCrawler.Data.Repository;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore.Internal;
+using System.Linq;
 using System.Threading.Tasks;
+using WordPressPCL.Models;
 
 namespace DotnetCrawler.Api.Controllers
 {

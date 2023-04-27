@@ -8,15 +8,14 @@ namespace DotnetCrawler.Core.RabitMQ
     #region message queue crawler
     public class CategoryMessage
     {
-        public string UrlCategoryCrawleNext { get; set; }
+        public string UrlCategoryCrawle { get; set; }
         public CategoryDb CategoryDb { get; set; }
         public SiteConfigDb SiteConfigDb { get; set; }
     }
 
     public class PostMessage
     {
-        public LinkModel LinkPost { get; set; }
-        public string StatusPost { get; set; }
+        public LinkModel LinkPostCrawle { get; set; }
         public bool IsDuplicate { get; set; }
         public string CategorySlug { get; set; }
         public SiteConfigDb SiteConfigDb { get; set; }

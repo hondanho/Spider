@@ -8,6 +8,7 @@ namespace DotnetCrawler.Data.Entity
     {
         public string Titlte { get; set; }
         public string Slug { get; set; }
-        public string UrlCrawlePostPagingLatest { get; set; }
+        public string UrlCategoryPagingNext { get; set; }
+        public string UrlCategoryPagingLatest { get; set; }
     }
 }

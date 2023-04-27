@@ -17,11 +17,9 @@ namespace DotnetCrawler.API.Service
         private readonly ICrawlerCore<CategorySetting> _crawlerCore;
 
         public CrawlerService(
-            ICrawlerCore<CategorySetting> dotnetCrawlerCore,
-            IMongoRepository<SiteConfigDb> siteConfigDbRepository)
+            ICrawlerCore<CategorySetting> dotnetCrawlerCore)
         {
             _crawlerCore = dotnetCrawlerCore;
-            _siteConfigDbRepository = siteConfigDbRepository;
         }
 
         [DisableConcurrentExecution(timeoutInSeconds: 10 * 60)]
@@ -41,7 +39,10 @@ namespace DotnetCrawler.API.Service
             else
             {
                 DisplayInfo<string>.For("Crawle Now").SetQueue("Crawle Now").Display(Color.Red);
-                await _crawlerCore.Crawle(false);
+                var isCrawler = await _crawlerCore.Crawle(isUpdatePostChap: false);
+                if(!isCrawler) {
+                    await _crawlerCore.Crawle(isUpdatePostChap: true);
+                }
             }
         }
     }

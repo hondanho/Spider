@@ -7,7 +7,6 @@ namespace DotnetCrawler.Core
 {
     public interface ICrawlerCore<T> where T : class {
         Task<bool> Crawle(bool isUpdatePostChap = false);
-        Task JobCategory(CategoryMessage categoryMessage);
         Task JobPost(PostMessage post);
         Task JobPostDetail(PostDetailMessage post);
         Task JobChap(ChapMessage chapMessage);
