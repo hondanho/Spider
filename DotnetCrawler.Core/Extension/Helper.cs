@@ -1,4 +1,6 @@
-﻿using HtmlAgilityPack;
+﻿using Hangfire.Storage.Monitoring;
+using Hangfire;
+using HtmlAgilityPack;
 using HtmlAgilityPack.CssSelectors.NetCore;
 using Microsoft.AspNetCore.Http;
 using System;
@@ -178,6 +180,28 @@ namespace DotnetCrawler.Base.Extension {
                 return char.ToUpper(str[0]).ToString();
             else
                 return char.ToUpper(str[0]) + str.Substring(1);
+        }
+
+        public static bool CheckJobExistRunning()
+        {
+            var monitoringApi = JobStorage.Current.GetMonitoringApi();
+            var runningJobs = monitoringApi.ProcessingJobs(0, int.MaxValue);
+            var result = false;
+            if (runningJobs != null && runningJobs.Any())
+            {
+                foreach (var job in runningJobs)
+                {
+                    JobDetailsDto jobDetails = monitoringApi.JobDetails(job.Key);
+                    var isRecurringJobId = jobDetails.Properties.Any(item => item.Key == "RecurringJobId");
+                    if (!isRecurringJobId)
+                    {
+                        result = true;
+                        break;
+                    }
+                }
+            }
+
+            return result;
         }
     }
 }

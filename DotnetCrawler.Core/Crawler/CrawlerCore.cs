@@ -19,6 +19,7 @@ namespace DotnetCrawler.Core
         private readonly IMongoRepository<PostDb> _postDbRepository;
         private readonly IMongoRepository<ChapDb> _chapDbRepository;
         private readonly IMongoRepository<CategoryDb> _categoryDbRepository;
+        private readonly IMongoRepository<SiteConfigDb> _siteConfigDbRepository;
 
         private readonly IRabitMQProducer _rabitMQProducer;
         private readonly string downloadPath = @"C:\DotnetCrawlercrawler\";
@@ -43,8 +44,34 @@ namespace DotnetCrawler.Core
         /// </summary>
         /// <param name="isUpdatePostChap"></param>
         /// <returns></returns>
-        public async Task Crawle(SiteConfigDb siteConfigDb, bool isUpdatePostChap = false)
+        public async Task<bool> Crawle(bool isUpdatePostChap = false)
         {
+
+            var isRerawler = true;
+            var siteConfigs = _siteConfigDbRepository.AsQueryable().ToList();
+
+            if (siteConfigs.Any())
+            {
+                foreach (var siteConfig in siteConfigs)
+                {
+                    var isCrawler = await _crawlerCore.Crawle(siteConfig, false);
+                    if (isCrawler)
+                    {
+                        isRerawler = false;
+                        break;
+                    }
+                }
+            }
+
+            if (isRerawler)
+            {
+                foreach (var siteConfig in siteConfigs)
+                {
+                    await _crawlerCore.Crawle(siteConfig, true);
+                }
+            }
+
+            var result = false;
             SetDocumentDb(siteConfigDb.BasicSetting.Document);
 
             siteConfigDb.BasicSetting.IsUpdatePostChap = isUpdatePostChap;
@@ -54,6 +81,7 @@ namespace DotnetCrawler.Core
             if (categoryModels.Any())
             {
                 var categoryDbs = _categoryDbRepository.FilterBy(cdb => categoryModels.Any(cgm => cgm.Slug == cdb.Slug)).ToList();
+
 
                 foreach (var category in categoryModels)
                 {
@@ -70,26 +98,35 @@ namespace DotnetCrawler.Core
                             };
                             await _categoryDbRepository.InsertOneAsync(categoryDb);
                             Console.WriteLine(string.Format("CATEGORY NEW: Id: {0}, Slug: {0}, Title: {1}", categoryDb.Id, categoryDb.Slug, categoryDb.Titlte));
+                            _rabitMQProducer.SendMessage<CategoryMessage>(QueueName.QueueCrawleCategory, new CategoryMessage()
+                            {
+                                UrlCategoryCrawleNext = category.Url,
+                                CategoryDb = categoryDb,
+                                SiteConfigDb = siteConfigDb
+                            });
+                            result = true;
+                            break;
                         }
                         else
                         {
                             Console.WriteLine(string.Format("CATEGORY EXIST: Slug: {0}, Title: {1}", categoryDb.Slug, categoryDb.Titlte));
+                            // check la update post chap
+                            var urlCategoryCrawleNext = isUpdatePostChap &&
+                                !string.IsNullOrEmpty(categoryDb.UrlCrawlePostPagingLatest) &&
+                                !siteConfigDb.PostSetting.IsHasChapter
+                                                            ? categoryDb.UrlCrawlePostPagingLatest : category.Url;
+                            _rabitMQProducer.SendMessage<CategoryMessage>(QueueName.QueueCrawleCategory, new CategoryMessage()
+                            {
+                                UrlCategoryCrawleNext = urlCategoryCrawleNext,
+                                CategoryDb = categoryDb,
+                                SiteConfigDb = siteConfigDb
+                            });
                         }
-
-                        // check la update post chap
-                        var urlCategoryCrawleNext = isUpdatePostChap &&
-                            !string.IsNullOrEmpty(categoryDb.UrlCrawlePostPagingLatest) &&
-                            !siteConfigDb.PostSetting.IsHasChapter
-                                                        ? categoryDb.UrlCrawlePostPagingLatest : category.Url;
-                        _rabitMQProducer.SendMessage<CategoryMessage>(QueueName.QueueCrawleCategory, new CategoryMessage()
-                        {
-                            UrlCategoryCrawleNext = urlCategoryCrawleNext,
-                            CategoryDb = categoryDb,
-                            SiteConfigDb = siteConfigDb
-                        });
                     }
                 }
             }
+
+            return result;
         }
 
         /// <summary>

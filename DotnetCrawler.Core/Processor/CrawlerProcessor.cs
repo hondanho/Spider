@@ -93,20 +93,20 @@ namespace DotnetCrawler.Processor
                     ).Value?.FirstOrDefault();
 
             var avatar = entityNode.QuerySelector(_request.PostSetting.Avatar)?.GetAttributeValue("src", null);
-            if (!string.IsNullOrEmpty(avatar))
-            {
-                if (!Helper.IsValidURL(avatar)) avatar = _request.BasicSetting.Domain + avatar;
-                Uri uriAvatar = new Uri(avatar);
-                string filePath = uriAvatar.AbsolutePath;
-                string fileName = Path.GetFileName(filePath);
-                var pathSave = string.Format("{0}/{1}/{2}{3}", PathDictSaveImage, documentName, categorySlug, slug);
+            //if (!string.IsNullOrEmpty(avatar))
+            //{
+            //    if (!Helper.IsValidURL(avatar)) avatar = _request.BasicSetting.Domain + avatar;
+            //    Uri uriAvatar = new Uri(avatar);
+            //    string filePath = uriAvatar.AbsolutePath;
+            //    string fileName = Path.GetFileName(filePath);
+            //    var pathSave = string.Format("{0}/{1}/{2}{3}", PathDictSaveImage, documentName, categorySlug, slug);
                 
-                if (!File.Exists(string.Format("{0}/{1}", pathSave, fileName)))
-                {
-                    Helper.DownloadImage(avatar, pathSave, fileName);
-                }
-                avatar = string.Format("{0}/{1}", pathSave, fileName);
-            }
+            //    if (!File.Exists(string.Format("{0}/{1}", pathSave, fileName)))
+            //    {
+            //        Helper.DownloadImage(avatar, pathSave, fileName);
+            //    }
+            //    avatar = string.Format("{0}/{1}", pathSave, fileName);
+            //}
             var entity = new PostDb()
             {
                 CategorySlug = categorySlug,

@@ -13,53 +13,22 @@ namespace DotnetCrawler.Api.Controllers
     {
         private readonly ICrawlerService _crawlerService;
 
-        private int scheduleHourReCrawler;
-        private int scheduleHourUpdatePostChap;
+        private int scheduleMinuteCheckCrawlerAndRecrawler;
 
         public CrawlerController(
             ICrawlerService crawlerService,
             IConfiguration configuration)
         {
             _crawlerService = crawlerService;
-            scheduleHourUpdatePostChap = configuration.GetValue<int>("Setting:ScheduleHourUpdatePostChap");
-            scheduleHourReCrawler = configuration.GetValue<int>("Setting:ScheduleHourReCrawler");
+            scheduleMinuteCheckCrawlerAndRecrawler = configuration.GetValue<int>("Setting:ScheduleMinuteCheckCrawlerAndRecrawler");
         }
 
         [HttpPost]
-        [Route("recrawle-all")]
-        public async Task ReCrawleAll()
+        [Route("crawle-all-schedule")]
+        public async Task CrawleAllSchedule(int? minute)
         {
-            await _crawlerService.ReCrawleAll();
-        }
-
-        [HttpPost]
-        [Route("recrawle-all-schedule")]
-        public async Task ReCrawleAllSchedule(int? hour)
-        {
-            hour = hour ?? scheduleHourReCrawler;
-            await _crawlerService.ReCrawleAllSchedule(hour.Value);
-        }
-
-        [HttpPost]
-        [Route("crawle-detail")]
-        public async Task CrawleDetail(string siteId)
-        {
-            await _crawlerService.CrawlerBySiteId(siteId);
-        }
-
-        [HttpPost]
-        [Route("update-post-chap-now")]
-        public async Task UpdatePostChapNow()
-        {
-            await _crawlerService.UpdatePostChapAll();
-        }
-
-        [HttpPost]
-        [Route("update-post-chap-schedule")]
-        public async Task UpdatePostChapSchedule(int? hour)
-        {
-            hour = hour ?? scheduleHourUpdatePostChap;
-            await _crawlerService.UpdatePostChapScheduleAll(hour.Value);
+            minute = minute ?? scheduleMinuteCheckCrawlerAndRecrawler;
+            await _crawlerService.CrawleAllSchedule(minute.Value);
         }
     }
 }
