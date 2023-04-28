@@ -15,10 +15,13 @@ namespace DotnetCrawler.API.Service
     public class CrawlerService : ICrawlerService
     {
         private readonly ICrawlerCore<CategorySetting> _crawlerCore;
+        private readonly IMongoRepository<CategoryDb> _categoryDbRepository;
 
         public CrawlerService(
+            IMongoRepository<CategoryDb> categoryDbRepository,
             ICrawlerCore<CategorySetting> dotnetCrawlerCore)
         {
+            _categoryDbRepository = categoryDbRepository;
             _crawlerCore = dotnetCrawlerCore;
         }
 
@@ -40,7 +43,18 @@ namespace DotnetCrawler.API.Service
             {
                 DisplayInfo<string>.For("Crawle Now").SetQueue("Crawle Now").Display(Color.Red);
                 var isCrawler = await _crawlerCore.Crawle(isUpdatePostChap: false);
-                if(!isCrawler) {
+                if (!isCrawler)
+                {
+                    // reset chạy lại từ đầu
+                    var categoryDbs = _categoryDbRepository.AsQueryable().ToList();
+                    if (categoryDbs.Any())
+                    {
+                        foreach (var category in categoryDbs)
+                        {
+                            category.UrlCategoryPagingLatest = string.Empty;
+                            category.UrlCategoryPagingNext = string.Empty;
+                        }
+                    }
                     await _crawlerCore.Crawle(isUpdatePostChap: true);
                 }
             }

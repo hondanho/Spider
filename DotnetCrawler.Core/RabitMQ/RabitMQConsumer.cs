@@ -42,14 +42,12 @@ namespace DotnetCrawler.Core.RabitMQ
 
             QueueDeclare(QueueName.QueueCrawlePost);
             QueueDeclare(QueueName.QueueCrawlePostDetail);
-            QueueDeclare(QueueName.QueueCrawleChap);
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
             ConsumerCrawlePost();
             ConsumerCrawlePostDetail();
-            ConsumerCrawleChap();
 
             return Task.CompletedTask;
         }
@@ -118,31 +116,6 @@ namespace DotnetCrawler.Core.RabitMQ
                 }
             };
             _modelChannel.BasicConsume(queue: QueueName.QueueCrawlePostDetail, autoAck: true, consumer: consumer);
-        }
-
-        private void ConsumerCrawleChap()
-        {
-            var consumer = new EventingBasicConsumer(_modelChannel);
-            consumer.Received += (model, ea) =>
-            {
-                var body = ea.Body.ToArray();
-                var bodyString = Encoding.UTF8.GetString(body);
-
-                if (!string.IsNullOrEmpty(bodyString))
-                {
-                    var message = JsonSerializer.Deserialize<ChapMessage>(bodyString);
-                    BackgroundJob.Enqueue(() => _crawlerCore.JobChap(message));
-
-                    DisplayInfo<string>
-                    .For("Received Chap")
-                    .SetExchange("")
-                    .SetQueue(QueueName.QueueCrawleChap)
-                    .SetRoutingKey(QueueName.QueueCrawleChap)
-                    .SetVirtualHost(_connectionFactory.VirtualHost)
-                    .Display(Color.Yellow);
-                }
-            };
-            _modelChannel.BasicConsume(queue: QueueName.QueueCrawleChap, autoAck: true, consumer: consumer);
         }
     }
 }

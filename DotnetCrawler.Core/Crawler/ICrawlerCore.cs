@@ -9,6 +9,5 @@ namespace DotnetCrawler.Core
         Task<bool> Crawle(bool isUpdatePostChap = false);
         Task JobPost(PostMessage post);
         Task JobPostDetail(PostDetailMessage post);
-        Task JobChap(ChapMessage chapMessage);
     }
 }
