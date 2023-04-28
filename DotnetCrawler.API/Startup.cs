@@ -32,13 +32,12 @@ namespace DotnetCrawler.Api
             {
                 configuration.UseMemoryStorage();
                 configuration.UseConsole();
-
             });
 
             services.AddHangfireServer(options =>
             {
                 options.SchedulePollingInterval = TimeSpan.FromSeconds(5);
-                options.WorkerCount = Math.Min(Environment.ProcessorCount * 5, Configuration.GetValue<int>("Setting:MaxWorkCount"));
+                options.WorkerCount = Math.Min(Environment.ProcessorCount * 5 -2, Configuration.GetValue<int>("Setting:MaxWorkCount"));
             });
             GlobalJobFilters.Filters.Add(new AutomaticRetryAttribute
             {
