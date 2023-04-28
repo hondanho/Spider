@@ -8,6 +8,7 @@ namespace DotnetCrawler.Data.Entity
     public class PostDb : Document
     {
         public string Slug { get; set; }
+        public string Url { get; set; }
         public string Avatar { get; set; }
         public string CategorySlug { get; set; }
         public string Status { get; set; }

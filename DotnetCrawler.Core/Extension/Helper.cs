@@ -11,11 +11,15 @@ using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace DotnetCrawler.Base.Extension {
-    public  class Helper {
+namespace DotnetCrawler.Base.Extension
+{
+    public class Helper
+    {
 
-        public static T GetRandomElement<T>(List<T> values) {
-           if (values != null && values.Count > 0) {
+        public static T GetRandomElement<T>(List<T> values)
+        {
+            if (values != null && values.Count > 0)
+            {
                 Random rand = new Random();
                 int index = rand.Next(values.Count);
                 return values[index];
@@ -24,14 +28,19 @@ namespace DotnetCrawler.Base.Extension {
             return default(T);
         }
 
-        public static string GetRandomProxyLive(List<string> proxys) {
+        public static string GetRandomProxyLive(List<string> proxys)
+        {
             var result = string.Empty;
-            while (true && proxys != null && proxys.Count > 0) {
+            while (true && proxys != null && proxys.Count > 0)
+            {
                 var proxy = GetRandomElement<string>(proxys);
-                if (!string.IsNullOrEmpty(proxy) && CheckStatusProxyLive(proxy)) {
+                if (!string.IsNullOrEmpty(proxy) && CheckStatusProxyLive(proxy))
+                {
                     result = proxy;
                     break;
-                } else {
+                }
+                else
+                {
                     proxys.Remove(proxy);
                 }
             }
@@ -39,40 +48,51 @@ namespace DotnetCrawler.Base.Extension {
             return result;
         }
 
-        public static bool CheckStatusProxyLive(string proxyAddress) {
-            try {
+        public static bool CheckStatusProxyLive(string proxyAddress)
+        {
+            try
+            {
                 WebRequest request = WebRequest.Create("http://www.google.com");
                 request.Proxy = GetWebProxy(proxyAddress);
                 WebResponse response = request.GetResponse();
                 return true;
-            } catch {
+            }
+            catch
+            {
                 return false;
             }
         }
 
-        public static WebProxy GetRandomProxyLiveOrDefault(List<string> proxys) {
+        public static WebProxy GetRandomProxyLiveOrDefault(List<string> proxys)
+        {
             var proxyAddress = GetRandomProxyLive(proxys);
-            if(string.IsNullOrEmpty(proxyAddress))
+            if (string.IsNullOrEmpty(proxyAddress))
                 return new WebProxy();
-            else {
+            else
+            {
                 return GetWebProxy(proxyAddress);
             }
         }
 
-        public static WebProxy GetWebProxy(string proxyAddress) {
+        public static WebProxy GetWebProxy(string proxyAddress)
+        {
             WebProxy proxyString;
-            if(proxyAddress.Split(":").Length == 4) {
+            if (proxyAddress.Split(":").Length == 4)
+            {
                 var proxyIpPort = proxyAddress.Split(":");
                 proxyString = new WebProxy(String.Format("{0}:{1}", proxyIpPort[0], proxyIpPort[1]), true);
                 proxyString.Credentials = new NetworkCredential(proxyIpPort[2], proxyIpPort[3]);
-            } else {
+            }
+            else
+            {
                 proxyString = new WebProxy(proxyAddress, true);
             }
 
             return proxyString;
         }
 
-        public static bool IsValidURL(string URL) {
+        public static bool IsValidURL(string URL)
+        {
             string Pattern = @"^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$";
             Regex Rgx = new Regex(Pattern, RegexOptions.Compiled | RegexOptions.IgnoreCase);
             return Rgx.IsMatch(URL);
@@ -156,7 +176,8 @@ namespace DotnetCrawler.Base.Extension {
                         }
                     }
                 }
-            } catch
+            }
+            catch
             {
             }
 
@@ -166,9 +187,10 @@ namespace DotnetCrawler.Base.Extension {
         public static string CleanSlug(string slug)
         {
             if (string.IsNullOrEmpty(slug)) return string.Empty;
-            
+
             slug = slug?.Replace("+", "-");
             slug = slug?.Replace(".html", "");
+            slug = slug.Trim().ToLower();
             return slug;
         }
 
@@ -194,6 +216,34 @@ namespace DotnetCrawler.Base.Extension {
                     JobDetailsDto jobDetails = monitoringApi.JobDetails(job.Key);
                     var isRecurringJobId = jobDetails.Properties.Any(item => item.Key == "RecurringJobId");
                     if (!isRecurringJobId)
+                    {
+                        result = true;
+                        break;
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        public static bool CheckJobExistUpdatePostChapRunning()
+        {
+            var monitoringApi = JobStorage.Current.GetMonitoringApi();
+            var runningJobs = monitoringApi.ProcessingJobs(0, int.MaxValue);
+            var result = false;
+            if (runningJobs != null && runningJobs.Any())
+            {
+                var countRunningJobs = 0;
+                foreach (var job in runningJobs)
+                {
+                    JobDetailsDto jobDetails = monitoringApi.JobDetails(job.Key);
+                    var isRecurringJobId = jobDetails.Properties.Any(item => item.Key == "RecurringJobId");
+                    if (isRecurringJobId)
+                    {
+                        countRunningJobs++;
+                    }
+
+                    if (countRunningJobs > 1)
                     {
                         result = true;
                         break;
