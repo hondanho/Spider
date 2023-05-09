@@ -303,15 +303,17 @@ namespace DotnetCrawler.Core
                 return;
             }
 
+            postDetailMessage.PostDb.UrlPostPagingCrawleNext = postUrlNext;
+            postDetailMessage.PostDb.UrlPostPagingCrawleLatest = postUrl;
+            await _postDbRepository.ReplaceOneAsync(postDetailMessage.PostDb);
+
+            await Task.Delay(10000);
             _rabitMQProducer.SendMessage<PostDetailMessage>(QueueName.QueueCrawlePostDetail, new PostDetailMessage()
             {
                 SiteConfigDb = request,
                 PostDb = postDetailMessage.PostDb,
                 UrlPostCrawleNext = postUrlNext
             });
-            postDetailMessage.PostDb.UrlPostPagingCrawleNext = postUrlNext;
-            postDetailMessage.PostDb.UrlPostPagingCrawleLatest = postUrl;
-            await _postDbRepository.ReplaceOneAsync(postDetailMessage.PostDb);
         }
 
         public async Task JobChap(SiteConfigDb siteConfigDb, string slugPost, string urlChap, int index)
