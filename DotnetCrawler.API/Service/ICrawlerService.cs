@@ -4,7 +4,8 @@ namespace DotnetCrawler.API.Service
 {
     public interface ICrawlerService
     {
-        Task CrawleAllSchedule(int minute);
-        Task ReCrawleAllSchedule(int minute);
+        Task Crawle();
+        Task ReCrawleSchedule(int hour);
+        Task ForceReCrawleSchedule();
     }
 }

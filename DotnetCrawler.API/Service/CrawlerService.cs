@@ -6,7 +6,6 @@ using DotnetCrawler.Data.Repository;
 using Hangfire;
 using Microsoft.Extensions.Configuration;
 using MongoDB.Driver;
-using Rabbit.Common.Display;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -32,66 +31,51 @@ namespace DotnetCrawler.API.Service
         }
 
         [DisableConcurrentExecution(timeoutInSeconds: 10 * 60)]
-        public async Task ReCrawleAllSchedule(int minute)
+        public async Task ReCrawleSchedule(int hour)
         {
-            CheckingCrawle(true);
-            RecurringJob.AddOrUpdate(() => CheckingCrawle(true), Cron.MinuteInterval(minute));
+            RecurringJob.AddOrUpdate(() => CheckingCrawle(), Cron.HourInterval(hour));
         }
 
         [DisableConcurrentExecution(timeoutInSeconds: 10 * 60)]
-        public async Task CrawleAllSchedule(int minute)
-        {
-            CheckingCrawle(false);
-            RecurringJob.AddOrUpdate(() => CheckingCrawle(false), Cron.MinuteInterval(minute));
-        }
-
-        public async Task CheckingCrawle(bool isReCrawler)
-        {
-            var isRunning = Helper.CheckJobExistRunning();
-            if (isRunning)
-            {
-                DisplayInfo<string>.For("Crawling").SetQueue("Crawling").Display(Color.Red);
-            }
-            else
-            {
-                DisplayInfo<string>.For("Crawle Now").SetQueue("Crawle Now").Display(Color.Red);
-
-                // crawle
-                var doCrawle = await _crawlerCore.Crawle(isReCrawler);
-
-                // update post chap
-                if (!doCrawle)
-                {
-                    await UpdateChapNow(isReCrawler);
-                }
-            }
-        }
-
-        private async Task UpdateChapNow(bool isReCrawler)
-        {
+        public async Task ForceReCrawleSchedule() {
             var categoryDbs = _categoryDbRepository.AsQueryable().ToList() ?? new List<CategoryDb>();
-            foreach (var categoryDb in categoryDbs)
-            {
+            foreach(var categoryDb in categoryDbs) {
                 categoryDb.UrlCategoryPagingLatest = string.Empty;
                 categoryDb.UrlCategoryPagingNext = categoryDb.Url;
                 _categoryDbRepository.ReplaceOne(categoryDb);
 
-                if (isReCrawler)
-                {
-                    var postDbServers = _postDbRepository.FilterBy(pdb =>
-                        pdb.CategorySlug == categoryDb.Slug
-                    ).ToList() ?? new List<PostDb>();
-                    foreach (var posdtDb in postDbServers)
-                    {
-                        posdtDb.UrlPostPagingCrawleLatest = string.Empty;
-                        posdtDb.UrlPostPagingCrawleNext = posdtDb.Url;
-                        _postDbRepository.ReplaceOne(posdtDb);
-                    }
+                var postDbServers = _postDbRepository.FilterBy(pdb =>
+                    pdb.CategorySlug == categoryDb.Slug
+                ).ToList() ?? new List<PostDb>();
+                foreach(var posdtDb in postDbServers) {
+                    posdtDb.UrlPostPagingCrawleLatest = string.Empty;
+                    posdtDb.UrlPostPagingCrawleNext = posdtDb.Url;
+                    _postDbRepository.ReplaceOne(posdtDb);
                 }
             }
 
-            DisplayInfo<string>.For("Update Now").SetQueue("Update Now").Display(Color.Red);
-            await _crawlerCore.Crawle(isReCrawler);
+            Helper.Display("Update Now", Core.Extension.MessageType.HighSystemInfo);
+            await CheckingCrawle();
+        }
+
+        [DisableConcurrentExecution(timeoutInSeconds: 10 * 60)]
+        public async Task Crawle()
+        {
+            await CheckingCrawle();
+        }
+
+        public async Task CheckingCrawle()
+        {
+            var isRunning = Helper.CheckJobExistRunning();
+            if (isRunning)
+            {
+                Helper.Display("Crawle started", Core.Extension.MessageType.HighSystemInfo);
+            }
+            else
+            {
+                Helper.Display("Crawle starting", Core.Extension.MessageType.HighSystemInfo);
+                await _crawlerCore.NextCategory();
+            }
         }
     }
 }

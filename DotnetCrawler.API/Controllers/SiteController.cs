@@ -15,12 +15,14 @@ namespace DotnetCrawler.Api.Controllers
     public class SiteController : ControllerBase
     {
         private readonly ICrawlerService _crawlerService;
+        private readonly IMongoRepository<CategoryDb> _categoryDbRepository;
         private readonly IMongoRepository<SiteConfigDb> _siteConfigDbRepository;
 
         public SiteController(
             IMongoRepository<SiteConfigDb> siteConfigDbRepository,
-            ICrawlerService crawlerService)
-        {
+            IMongoRepository<CategoryDb> categoryDbRepository,
+            ICrawlerService crawlerService) {
+            _categoryDbRepository = categoryDbRepository;
             _siteConfigDbRepository = siteConfigDbRepository;
             _crawlerService = crawlerService;
         }
@@ -35,7 +37,18 @@ namespace DotnetCrawler.Api.Controllers
         [RequestSizeLimit(2147483648)] // e.g. 2 GB request limit
         public async Task CreateSite([FromBody] SiteConfigDb siteConfigDb)
         {
-            await _siteConfigDbRepository.InsertOneAsync(siteConfigDb);
+            var listCategoryDbs = _categoryDbRepository.AsQueryable().ToList();
+            if (siteConfigDb != null && siteConfigDb.CategorySetting != null &&
+                siteConfigDb.CategorySetting.CategoryModels != null &&
+                siteConfigDb.CategorySetting.CategoryModels.Any()) {
+                siteConfigDb.CategorySetting.CategoryModels = siteConfigDb.CategorySetting.CategoryModels.Where(item =>
+                    !string.IsNullOrEmpty(item.Slug) &&
+                    !string.IsNullOrEmpty(item.Titlte) &&
+                    !string.IsNullOrEmpty(item.Url) &&
+                    listCategoryDbs.Any(ctgDbs => ctgDbs.Slug == item.Slug && ctgDbs.Url == item.Url)
+                ).ToList();
+                await _siteConfigDbRepository.InsertOneAsync(siteConfigDb);
+            }
         }
 
         [HttpPut]

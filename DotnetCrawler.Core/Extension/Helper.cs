@@ -10,11 +10,35 @@ using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Pastel;
+using System.Drawing;
+using DotnetCrawler.Core.Extension;
 
 namespace DotnetCrawler.Base.Extension
 {
-    public class Helper
-    {
+    public class Helper {
+        public static void Display(string text, MessageType messageType) {
+            if(string.IsNullOrEmpty(text))
+                text = "";
+            var color = Color.Red;
+            switch(messageType) {
+            case MessageType.Error:
+                color = Color.Red;
+                break;
+            case MessageType.Warning:
+                color = Color.Yellow;
+                break;
+            case MessageType.Information:
+                color = Color.White;
+                break;
+            case MessageType.SystemInfo:
+                color = Color.Green;
+                break;
+            default:
+                break;
+            }
+            Console.WriteLine(text.Pastel(color));
+        }
 
         public static T GetRandomElement<T>(List<T> values)
         {
@@ -109,7 +133,7 @@ namespace DotnetCrawler.Base.Extension
             using (WebClient client = new WebClient())
             {
                 client.DownloadFile(imageUrl, Path.Combine(savePath, fileName));
-                Console.WriteLine("Tải xuống thành công!");
+                Helper.Display("Tải xuống thành công!", MessageType.Information);
             }
         }
 

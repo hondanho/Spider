@@ -1,6 +1,5 @@
 ﻿using System.Text.Json;
 using RabbitMQ.Client;
-using Rabbit.Common.Display;
 using System.Drawing;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,6 +10,7 @@ using DotnetCrawler.Data.Constants;
 using DotnetCrawler.Data.Model;
 using Hangfire;
 using DotnetCrawler.Data.Entity;
+using DotnetCrawler.Base.Extension;
 
 namespace DotnetCrawler.Core.RabitMQ
 {
@@ -80,14 +80,7 @@ namespace DotnetCrawler.Core.RabitMQ
                 {
                     var message = JsonSerializer.Deserialize<PostMessage>(bodyString);
                     BackgroundJob.Enqueue(() => _crawlerCore.JobPost(message));
-
-                    DisplayInfo<string>
-                    .For("Received Post")
-                    .SetExchange("")
-                    .SetQueue(QueueName.QueueCrawlePost)
-                    .SetRoutingKey(QueueName.QueueCrawlePost)
-                    .SetVirtualHost(_connectionFactory.VirtualHost)
-                    .Display(Color.Yellow);
+                    Helper.Display("Received Post", Extension.MessageType.SystemInfo);
                 }
             };
             _modelChannel.BasicConsume(queue: QueueName.QueueCrawlePost, autoAck: true, consumer: consumer);
@@ -105,14 +98,7 @@ namespace DotnetCrawler.Core.RabitMQ
                 {
                     var message = JsonSerializer.Deserialize<PostDetailMessage>(bodyString);
                     BackgroundJob.Enqueue(() => _crawlerCore.JobPostDetail(message));
-
-                    DisplayInfo<string>
-                    .For("Received Post Detail")
-                    .SetExchange("")
-                    .SetQueue(QueueName.QueueCrawlePostDetail)
-                    .SetRoutingKey(QueueName.QueueCrawlePostDetail)
-                    .SetVirtualHost(_connectionFactory.VirtualHost)
-                    .Display(Color.Yellow);
+                    Helper.Display("Received Post Detail", Extension.MessageType.SystemInfo);
                 }
             };
             _modelChannel.BasicConsume(queue: QueueName.QueueCrawlePostDetail, autoAck: true, consumer: consumer);

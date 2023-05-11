@@ -1,10 +1,10 @@
 ﻿using Newtonsoft.Json;
 using RabbitMQ.Client;
-using Rabbit.Common.Display;
 using System.Drawing;
 using System.Text;
 using System.Collections.Immutable;
 using DotnetCrawler.Data.Model;
+using DotnetCrawler.Base.Extension;
 
 namespace DotnetCrawler.Core.RabitMQ
 {
@@ -46,14 +46,7 @@ namespace DotnetCrawler.Core.RabitMQ
                 var json = JsonConvert.SerializeObject(message);
                 var body = Encoding.UTF8.GetBytes(json);
                 channel.BasicPublish(exchange: exchangeName, routingKey: queue, body: body);
-
-                DisplayInfo<string>
-                    .For(string.Format("Send queue {0}", queue))
-                    .SetExchange(exchangeName)
-                    .SetQueue(queue)
-                    .SetRoutingKey(queue)
-                    .SetVirtualHost(_connectionFactory.VirtualHost)
-                    .Display(Color.Cyan);
+                Helper.Display(string.Format("Send queue {0}", queue), Extension.MessageType.SystemInfo);
             }
         }
     }

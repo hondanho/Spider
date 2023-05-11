@@ -13,30 +13,34 @@ namespace DotnetCrawler.Api.Controllers
     {
         private readonly ICrawlerService _crawlerService;
 
-        private int scheduleMinuteCheckCrawlerAndRecrawler;
+        private int scheduleRecrawler;
 
         public CrawlerController(
             ICrawlerService crawlerService,
             IConfiguration configuration)
         {
             _crawlerService = crawlerService;
-            scheduleMinuteCheckCrawlerAndRecrawler = configuration.GetValue<int>("Setting:ScheduleMinuteCheckCrawlerAndRecrawler");
+            scheduleRecrawler = configuration.GetValue<int>("Setting:ScheduleRecrawler");
         }
 
         [HttpPost]
-        [Route("crawle-all-schedule")]
-        public async Task CrawleAllSchedule(int? minute)
+        [Route("crawle")]
+        public async Task Crawle()
         {
-            minute = minute ?? scheduleMinuteCheckCrawlerAndRecrawler;
-            await _crawlerService.CrawleAllSchedule(minute.Value);
+            await _crawlerService.Crawle();
         }
 
         [HttpPost]
-        [Route("recrawle-all-schedule")]
-        public async Task ReCrawleAllSchedule(int? minute)
+        [Route("recrawle")]
+        public async Task ReCrawleSchedule()
         {
-            minute = minute ?? scheduleMinuteCheckCrawlerAndRecrawler;
-            await _crawlerService.ReCrawleAllSchedule(minute.Value);
+            await _crawlerService.ReCrawleSchedule(scheduleRecrawler);
+        }
+
+        [HttpPost]
+        [Route("force-recrawle")]
+        public async Task ForceReCrawleSchedule() {
+            await _crawlerService.ForceReCrawleSchedule();
         }
     }
 }
