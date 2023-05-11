@@ -20,21 +20,15 @@ namespace DotnetCrawler.API.Service
         private readonly ICrawlerCore<CategorySetting> _crawlerCore;
         private readonly IMongoRepository<CategoryDb> _categoryDbRepository;
         private readonly IMongoRepository<PostDb> _postDbRepository;
-        private int scheduleHourUpdatePostChap;
 
         public CrawlerService(
             IMongoRepository<CategoryDb> categoryDbRepository,
             IMongoRepository<PostDb> postDbRepository,
-            IConfiguration configuration,
             ICrawlerCore<CategorySetting> dotnetCrawlerCore)
         {
             _postDbRepository = postDbRepository;
             _categoryDbRepository = categoryDbRepository;
             _crawlerCore = dotnetCrawlerCore;
-            scheduleHourUpdatePostChap = configuration.GetValue<int>("Setting:ScheduleHourUpdatePostChap") > 0 ?
-                configuration.GetValue<int>("Setting:ScheduleHourUpdatePostChap") : 1;
-
-
         }
 
         [DisableConcurrentExecution(timeoutInSeconds: 10 * 60)]
