@@ -1,6 +1,5 @@
 ﻿using System.Text.Json;
 using RabbitMQ.Client;
-using System.Drawing;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
@@ -40,36 +39,16 @@ namespace DotnetCrawler.Core.RabitMQ
             _modelChannel = _connection.CreateModel();
             _crawlerCore = dotnetCrawlerCore;
 
-            QueueDeclare(QueueName.QueueCrawlePost);
-            QueueDeclare(QueueName.QueueCrawlePostDetail);
-        }
-
-        public Task StartAsync(CancellationToken cancellationToken)
-        {
-            ConsumerCrawlePost();
-            ConsumerCrawlePostDetail();
-
-            return Task.CompletedTask;
-        }
-        public Task StopAsync(CancellationToken cancellationToken)
-        {
-            _connection.Close();
-            return Task.CompletedTask;
-        }
-
-        private void QueueDeclare(string QueueName)
-        {
             _modelChannel.QueueDeclare(
-                QueueName,
+                QueueName.QueueCrawlePost,
                 durable: false,
                 exclusive: false,
                 autoDelete: false
             );
         }
 
-        private void ConsumerCrawlePost()
+        public Task StartAsync(CancellationToken cancellationToken)
         {
-
             var consumer = new EventingBasicConsumer(_modelChannel);
             consumer.Received += (model, ea) =>
             {
@@ -79,29 +58,18 @@ namespace DotnetCrawler.Core.RabitMQ
                 if (!string.IsNullOrEmpty(bodyString))
                 {
                     var message = JsonSerializer.Deserialize<PostMessage>(bodyString);
-                    BackgroundJob.Enqueue(() => _crawlerCore.JobPost(message));
+                    BackgroundJob.Enqueue(() => _crawlerCore.JobPostData(message));
                     Helper.Display("Received Post", Extension.MessageType.SystemInfo);
                 }
             };
             _modelChannel.BasicConsume(queue: QueueName.QueueCrawlePost, autoAck: true, consumer: consumer);
+
+            return Task.CompletedTask;
         }
-
-        private void ConsumerCrawlePostDetail()
+        public Task StopAsync(CancellationToken cancellationToken)
         {
-            var consumer = new EventingBasicConsumer(_modelChannel);
-            consumer.Received += (model, ea) =>
-            {
-                var body = ea.Body.ToArray();
-                var bodyString = Encoding.UTF8.GetString(body);
-
-                if (!string.IsNullOrEmpty(bodyString))
-                {
-                    var message = JsonSerializer.Deserialize<PostDetailMessage>(bodyString);
-                    BackgroundJob.Enqueue(() => _crawlerCore.JobPostDetail(message));
-                    Helper.Display("Received Post Detail", Extension.MessageType.SystemInfo);
-                }
-            };
-            _modelChannel.BasicConsume(queue: QueueName.QueueCrawlePostDetail, autoAck: true, consumer: consumer);
+            _connection.Close();
+            return Task.CompletedTask;
         }
     }
 }

@@ -18,5 +18,6 @@ namespace DotnetCrawler.Data.Entity
         public string UrlPostPagingCrawleNext { get; set; }
         public string UrlPostPagingCrawleLatest { get; set; }
         public int Index { get; set; }
+        public bool IsCrawleDone { get; set; }
     }
 }
