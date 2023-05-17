@@ -167,9 +167,9 @@ namespace DotnetCrawler.Core
                     continue;
                 }
 
-                if (!string.IsNullOrEmpty(postDb?.UrlPostPagingCrawleNext))
+                if (!string.IsNullOrEmpty(postDb?.UrlPostPagingCrawleLatest))
                 {
-                    postUrlModel.Url = postDb.UrlPostPagingCrawleNext;
+                    postUrlModel.Url = postDb.UrlPostPagingCrawleLatest;
                 }
 
                 var index = (pageCategoryNumber - 1) * request.CategorySetting.AmountPostInCategory + (i + 1);
@@ -284,7 +284,6 @@ namespace DotnetCrawler.Core
             for (int i = 0; i < chapUrlModels.Count(); i++)
             {
                 var chapUrlModel = chapUrlModels.ToList()[i];
-
                 var isDuplicateChap = IsDuplicateChap(request, chapDbServers, chapUrlModel);
                 if (isDuplicateChap)
                 {
@@ -305,9 +304,13 @@ namespace DotnetCrawler.Core
             await _postDbRepository.ReplaceOneAsync(postDetailMessage.PostDb);
 
             // next post
-            await NextJobPostDetail(
+            NextJobPostDetail(
+                new PostDetailMessage() {
+                    SiteConfigDb = request,
+                    PostDb = postDetailMessage.PostDb,
+                    UrlPostCrawleNext = postDetailMessage.PostDb.UrlPostPagingCrawleNext
+                },
                 request, 
-                postDetailMessage.PostDb, 
                 chapUrlModels.Count(), 
                 postUrlNext, 
                 postDetailMessage.IsNextCategory,
@@ -318,8 +321,8 @@ namespace DotnetCrawler.Core
         }
 
         public async Task NextJobPostDetail(
+            PostDetailMessage messagePostDetail,
             SiteConfigDb request,
-            PostDb postDb,
             int countChaps,
             string postUrlNext,
             bool isNextCategory,
@@ -328,15 +331,9 @@ namespace DotnetCrawler.Core
             CategoryModel categoryModel
             )
         {
-            if (countChaps == request.PostSetting.AmountChapInPost &&
-               !string.IsNullOrEmpty(postUrlNext))
+            if (countChaps == request.PostSetting.AmountChapInPost && !string.IsNullOrEmpty(postUrlNext))
             {
-                JobPostDetail(new PostDetailMessage()
-                {
-                    SiteConfigDb = request,
-                    PostDb = postDb,
-                    UrlPostCrawleNext = postDb.UrlPostPagingCrawleNext
-                });
+                JobPostDetail(messagePostDetail);
             }
             else
             {
