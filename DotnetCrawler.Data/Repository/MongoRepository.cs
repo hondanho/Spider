@@ -21,7 +21,7 @@ namespace DotnetCrawler.Data.Repository
         public MongoRepository(IMongoDbSettings settings)
         {
             _connectionString = settings.ConnectionString;
-            var database = new MongoClient(settings.ConnectionString).GetDatabase(settings.DatabaseName);
+            var database = new MongoClient(settings.ConnectionString).GetDatabase("default");
             _collection = database.GetCollection<TDocument>(GetCollectionName(typeof(TDocument)));
         }
 

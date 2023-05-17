@@ -1,5 +1,4 @@
-﻿using Amazon.Runtime.Internal;
-using DotnetCrawler.Base.Extension;
+﻿using DotnetCrawler.Base.Extension;
 using DotnetCrawler.Core.Extension;
 using DotnetCrawler.Core.RabitMQ;
 using DotnetCrawler.Data.Constants;
@@ -9,12 +8,10 @@ using DotnetCrawler.Data.Model;
 using DotnetCrawler.Data.Repository;
 using DotnetCrawler.Downloader;
 using DotnetCrawler.Processor;
-using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using WordPressPCL.Models;
 using PostStatus = DotnetCrawler.Data.Constants.PostStatus;
 
 namespace DotnetCrawler.Core
@@ -28,11 +25,9 @@ namespace DotnetCrawler.Core
 
         private readonly IRabitMQProducer _rabitMQProducer;
         private readonly string downloadPath = @"C:\DotnetCrawlercrawler\";
-        private string databaseName { get; set; }
 
         public CrawlerCore(
             IRabitMQProducer rabitMQProducer,
-            IConfiguration configuration,
             IMongoRepository<PostDb> postDbRepository,
             IMongoRepository<ChapDb> chapDbRepository,
             IMongoRepository<SiteConfigDb> siteConfigDbRepository,
@@ -44,7 +39,6 @@ namespace DotnetCrawler.Core
             _rabitMQProducer = rabitMQProducer;
             _siteConfigDbRepository = siteConfigDbRepository;
 
-            databaseName = configuration.GetValue<string>("MongoDbSettings:DatabaseName");
         }
 
         /// <summary>
@@ -117,14 +111,13 @@ namespace DotnetCrawler.Core
                     string.Format("CATEGORY NEW: Id: {0}, Slug: {0}, Title: {1}", categoryDb.Id, categoryDb.Slug, categoryDb.Titlte),
                     MessageType.Information
                 );
-
-                await JobCategoryDetail(siteConfig, category.Url, categoryDb, category);
             }
             else
             {
                 Helper.Display(string.Format("CATEGORY EXIST: Slug: {0}, Title: {1}", categoryDb.Slug, categoryDb.Titlte), MessageType.Information);
-                await JobCategoryDetail(siteConfig, !String.IsNullOrEmpty(categoryDb.UrlCategoryPagingLatest) ? categoryDb.UrlCategoryPagingLatest : category.Url, categoryDb, category);
             }
+
+            await JobCategoryDetail(siteConfig, category.Url, categoryDb, category);
         }
 
         /// <summary> 
@@ -219,9 +212,9 @@ namespace DotnetCrawler.Core
             var isDuplicate = postMessage.IsDuplicate;
             var index = postMessage.Index;
 
-            _postDbRepository.SetCollectionSave(databaseName);
-            _chapDbRepository.SetCollectionSave(databaseName);
-            _categoryDbRepository.SetCollectionSave(databaseName);
+            _postDbRepository.SetCollectionSave(request.BasicSetting.Document);
+            _chapDbRepository.SetCollectionSave(request.BasicSetting.Document);
+            _categoryDbRepository.SetCollectionSave(request.BasicSetting.Document);
 
             if (!request.PostSetting.IsHasChapter && isDuplicate)
             {
@@ -236,7 +229,7 @@ namespace DotnetCrawler.Core
                     request.BasicSetting.UserAgent,
                     DotnetCrawlerDownloaderType.FromMemory
                 );
-            var post = await CrawlerProcessor.PostProcess(request, categorySlug, linkPostCrawle.Url, index, htmlDocumentPost, databaseName);
+            var post = await CrawlerProcessor.PostProcess(request, categorySlug, linkPostCrawle.Url, index, htmlDocumentPost, request.BasicSetting.Document);
 
             if (!isDuplicate)
             {
