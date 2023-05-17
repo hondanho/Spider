@@ -24,7 +24,6 @@ namespace DotnetCrawler.Core
         private readonly IMongoRepository<SiteConfigDb> _siteConfigDbRepository;
 
         private readonly IRabitMQProducer _rabitMQProducer;
-        private readonly string downloadPath = @"C:\DotnetCrawlercrawler\";
 
         public CrawlerCore(
             IRabitMQProducer rabitMQProducer,
@@ -125,14 +124,8 @@ namespace DotnetCrawler.Core
         /// </summary>
         public async Task JobCategoryDetail(SiteConfigDb request, string categoryUrl, CategoryDb categoryDb, CategoryModel category)
         {
-            if (string.IsNullOrEmpty(categoryUrl))
-            {
-                NextCategory(category);
-                return;
-            }
             var htmlDocumentCategory = await DotnetCrawlerDownloader.Download(
                     categoryUrl,
-                    downloadPath,
                     request.BasicSetting.Proxys,
                     request.BasicSetting.UserAgent,
                     DotnetCrawlerDownloaderType.FromMemory
@@ -224,7 +217,6 @@ namespace DotnetCrawler.Core
 
             var htmlDocumentPost = await DotnetCrawlerDownloader.Download(
                     linkPostCrawle.Url,
-                    downloadPath,
                     request.BasicSetting.Proxys,
                     request.BasicSetting.UserAgent,
                     DotnetCrawlerDownloaderType.FromMemory
@@ -269,7 +261,6 @@ namespace DotnetCrawler.Core
 
             var htmlDocumentPost = await DotnetCrawlerDownloader.Download(
                     postUrl,
-                    downloadPath,
                     request.BasicSetting.Proxys,
                     request.BasicSetting.UserAgent,
                     DotnetCrawlerDownloaderType.FromMemory
@@ -360,7 +351,6 @@ namespace DotnetCrawler.Core
         {
             var htmlDocumentChap = await DotnetCrawlerDownloader.Download(
                     urlChap,
-                    downloadPath,
                     siteConfigDb.BasicSetting.Proxys,
                     siteConfigDb.BasicSetting.UserAgent,
                     DotnetCrawlerDownloaderType.FromMemory
