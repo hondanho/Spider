@@ -18,21 +18,17 @@ namespace DotnetCrawler.Core.RabitMQ
     {
         public LinkModel LinkPostCrawle { get; set; }
         public bool IsDuplicate { get; set; }
-        public string CategorySlug { get; set; }
-        public CategoryDb CategoryDb { get; set; }
-        public CategoryModel CategoryModel { get; set; }
         public SiteConfigDb SiteConfigDb { get; set; }
         public int Index { get; set; }
-        public bool IsNextCategory { get; set; }
-        public string UrlCategoryNext { get; set; }
+        public bool IsPostEnd { get; set; }
+        public string CategorySlug { get; set; }
     }
 
     public class PostDetailMessage
     {
         public PostDb PostDb { get; set; }
         public string UrlPostCrawleNext { get; set; }
-        public string UrlCategoryNext { get; set; }
-        public CategoryDb CategoryDb { get; set; }
+        public string CategorySlug { get; set; }
         public CategoryModel CategoryModel { get; set; }
         public SiteConfigDb SiteConfigDb { get; set; }
         public bool IsNextCategory { get; set; }

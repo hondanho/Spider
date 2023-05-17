@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using WordPressPCL.Models;
 using PostStatus = DotnetCrawler.Data.Constants.PostStatus;
 
 namespace DotnetCrawler.Core
@@ -59,13 +60,7 @@ namespace DotnetCrawler.Core
                 return;
             }
 
-            var siteConfig = await _siteConfigDbRepository.FindOneAsync(site =>
-                site.CategorySetting.CategoryModels.Any(ctg =>
-                    ctg.Slug == category.Slug &&
-                    ctg.Url == category.Url &&
-                    ctg.Titlte == category.Titlte
-                )
-            );
+            var siteConfig = await _siteConfigDbRepository.FindOneAsync(site => site.CategorySetting.CategoryModels.Any(ctg => ctg.Slug == category.Slug));
             if (siteConfig == null)
             {
                 Helper.Display(String.Format("Not found category slug {0}", category.Slug), MessageType.Warning);
@@ -76,7 +71,7 @@ namespace DotnetCrawler.Core
             {
                 var allSiteConfig = _siteConfigDbRepository.AsQueryable().ToList();
                 var indexSiter = allSiteConfig.IndexOf(siteConfig);
-                if (indexSiter != allSiteConfig.Count())
+                if (indexSiter != -1 && indexSiter != allSiteConfig.Count())
                 {
                     await NextCategory(allSiteConfig[indexSiter++].CategorySetting.CategoryModels.FirstOrDefault());
                     Helper.Display("Next Site", MessageType.Information);
@@ -116,13 +111,13 @@ namespace DotnetCrawler.Core
                 Helper.Display(string.Format("CATEGORY EXIST: Slug: {0}, Title: {1}", categoryDb.Slug, categoryDb.Titlte), MessageType.Information);
             }
 
-            await JobCategoryDetail(siteConfig, category.Url, categoryDb, category);
+            await JobCategoryDetail(siteConfig, category.Url, categoryDb);
         }
 
         /// <summary> 
         /// Read post from category, push post to queue
         /// </summary>
-        public async Task JobCategoryDetail(SiteConfigDb request, string categoryUrl, CategoryDb categoryDb, CategoryModel category)
+        public async Task JobCategoryDetail(SiteConfigDb request, string categoryUrl, CategoryDb categoryDb)
         {
             var htmlDocumentCategory = await DotnetCrawlerDownloader.Download(
                     categoryUrl,
@@ -150,6 +145,10 @@ namespace DotnetCrawler.Core
                     request.CategorySetting.PagingSelector,
                     request.BasicSetting.Domain)
                 ).FirstOrDefault();
+            // save next url process
+            categoryDb.UrlCategoryPagingNext = urlCategoryNext;
+            categoryDb.UrlCategoryPagingLatest = categoryUrl;
+            await _categoryDbRepository.ReplaceOneAsync(categoryDb);
 
             for (int i = 0; i < postUrlModels.Count(); i++)
             {
@@ -173,7 +172,7 @@ namespace DotnetCrawler.Core
                 }
 
                 var index = (pageCategoryNumber - 1) * request.CategorySetting.AmountPostInCategory + (i + 1);
-                var isNextCategory = request.CategorySetting.AmountPostInCategory == (postUrlModels.Count() - 1);
+                var isPostEnd = request.CategorySetting.AmountPostInCategory == (postUrlModels.Count() - 1);
                 _rabitMQProducer.SendMessage<PostMessage>(QueueName.QueueCrawlePost, new PostMessage()
                 {
                     SiteConfigDb = request,
@@ -181,17 +180,9 @@ namespace DotnetCrawler.Core
                     LinkPostCrawle = postUrlModel,
                     IsDuplicate = isDuplicatePost,
                     Index = index,
-                    IsNextCategory = isNextCategory,
-                    CategoryModel = category,
-                    UrlCategoryNext = urlCategoryNext,
-                    CategoryDb = isNextCategory ? categoryDb : null
+                    IsPostEnd = isPostEnd
                 });
             }
-
-            // save next url process
-            categoryDb.UrlCategoryPagingNext = urlCategoryNext;
-            categoryDb.UrlCategoryPagingLatest = categoryUrl;
-            await _categoryDbRepository.ReplaceOneAsync(categoryDb);
         }
 
         /// <summary>
@@ -241,9 +232,7 @@ namespace DotnetCrawler.Core
                     SiteConfigDb = request,
                     PostDb = post,
                     UrlPostCrawleNext = linkPostCrawle.Url,
-                    UrlCategoryNext = postMessage.UrlCategoryNext,
-                    CategoryDb = postMessage.CategoryDb,
-                    CategoryModel = postMessage.CategoryModel
+                    CategorySlug = postMessage.CategorySlug
                 });
             }
         }
@@ -304,42 +293,43 @@ namespace DotnetCrawler.Core
             await _postDbRepository.ReplaceOneAsync(postDetailMessage.PostDb);
 
             // next post
-            NextJobPostDetail(
-                new PostDetailMessage() {
+            await NextJobPostDetail(
+                new PostDetailMessage()
+                {
                     SiteConfigDb = request,
                     PostDb = postDetailMessage.PostDb,
-                    UrlPostCrawleNext = postDetailMessage.PostDb.UrlPostPagingCrawleNext
+                    UrlPostCrawleNext = postDetailMessage.PostDb.UrlPostPagingCrawleNext,
+                    IsNextCategory = postDetailMessage.IsNextCategory
                 },
-                request, 
-                chapUrlModels.Count(), 
-                postUrlNext, 
-                postDetailMessage.IsNextCategory,
-                postDetailMessage.UrlCategoryNext,
-                postDetailMessage.CategoryDb,
-                postDetailMessage.CategoryModel
+                request,
+                isNextPost: chapUrlModels.Count() == request.PostSetting.AmountChapInPost && !string.IsNullOrEmpty(postUrlNext)
                 );
         }
 
         public async Task NextJobPostDetail(
-            PostDetailMessage messagePostDetail,
+            PostDetailMessage postDetailMessage,
             SiteConfigDb request,
-            int countChaps,
-            string postUrlNext,
-            bool isNextCategory,
-            string urlCategoryNext,
-            CategoryDb categoryDb,
-            CategoryModel categoryModel
+            bool isNextPost
             )
         {
-            if (countChaps == request.PostSetting.AmountChapInPost && !string.IsNullOrEmpty(postUrlNext))
+            if (isNextPost)
             {
-                JobPostDetail(messagePostDetail);
+                await JobPostDetail(postDetailMessage);
             }
-            else
+            else if (postDetailMessage.IsNextCategory)
             {
-                if (isNextCategory && !string.IsNullOrEmpty(urlCategoryNext) && categoryDb != null)
+                var categoryDb = await _categoryDbRepository.FindOneAsync(item => item.Slug == postDetailMessage.CategorySlug);
+                if (!string.IsNullOrEmpty(categoryDb.UrlCategoryPagingNext))
                 {
-                    JobCategoryDetail(request, urlCategoryNext, categoryDb, categoryModel);
+                    await JobCategoryDetail(request, categoryDb.UrlCategoryPagingNext, categoryDb);
+                } else
+                {
+                    var siteConfig = await _siteConfigDbRepository.FindOneAsync(site => site.CategorySetting.CategoryModels.Any(ctg => ctg.Slug == categoryDb.Slug));
+                    if (siteConfig != null)
+                    {
+                        var categoryModel = siteConfig.CategorySetting.CategoryModels.FirstOrDefault(item => item.Slug == categoryDb.Slug);
+                        await NextCategory(categoryModel);
+                    }
                 }
             }
         }
