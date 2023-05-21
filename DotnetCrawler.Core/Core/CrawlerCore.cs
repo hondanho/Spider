@@ -8,11 +8,11 @@ using DotnetCrawler.Data.Model;
 using DotnetCrawler.Data.Repository;
 using DotnetCrawler.Downloader;
 using DotnetCrawler.Processor;
+using Microsoft.EntityFrameworkCore.Internal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using WordPressPCL.Models;
 using PostStatus = DotnetCrawler.Data.Constants.PostStatus;
 
 namespace DotnetCrawler.Core
@@ -38,7 +38,6 @@ namespace DotnetCrawler.Core
             _categoryDbRepository = categoryDbRepository;
             _rabitMQProducer = rabitMQProducer;
             _siteConfigDbRepository = siteConfigDbRepository;
-
         }
 
         /// <summary>
@@ -46,10 +45,15 @@ namespace DotnetCrawler.Core
         /// </summary>
         public async Task NextCategory(CategoryModel category = null)
         {
+            _siteConfigDbRepository.SetCollectionSave("novelfull");
+            _postDbRepository.SetCollectionSave("novelfull");
+            _chapDbRepository.SetCollectionSave("novelfull");
+            _categoryDbRepository.SetCollectionSave("novelfull");
+
             if (category == null)
             {
-                var siteConfigFirst = _siteConfigDbRepository.AsQueryable().FirstOrDefault();
-                if (siteConfigFirst == null)
+                var siteConfigFirst = _siteConfigDbRepository.FilterBy(item => item.BasicSetting.IsThuThap).FirstOrDefault();
+                if (siteConfigFirst == null || siteConfigFirst.CategorySetting.CategoryModels.FirstOrDefault() == null)
                 {
                     Helper.Display("Nothing site config", MessageType.Warning);
                 }
@@ -61,25 +65,27 @@ namespace DotnetCrawler.Core
             }
 
             var siteConfig = await _siteConfigDbRepository.FindOneAsync(site => site.CategorySetting.CategoryModels.Any(ctg => ctg.Slug == category.Slug));
-            if (siteConfig == null)
+            if (siteConfig == null || !siteConfig.CategorySetting.CategoryModels.Any())
             {
                 Helper.Display(String.Format("Not found category slug {0}", category.Slug), MessageType.Warning);
                 return;
             }
-            var categoryIndex = siteConfig.CategorySetting.CategoryModels.IndexOf(category);
+            var categoryIndex = siteConfig.CategorySetting.CategoryModels.IndexOf(
+                    siteConfig.CategorySetting.CategoryModels.Where(p => p.Slug == category.Slug).FirstOrDefault()
+                );
             if (categoryIndex == siteConfig.CategorySetting.CategoryModels.Count() - 1)
             {
-                var allSiteConfig = _siteConfigDbRepository.AsQueryable().ToList();
-                var indexSiter = allSiteConfig.IndexOf(siteConfig);
+                var allSiteConfig = _siteConfigDbRepository.FilterBy(item => item.BasicSetting.IsThuThapLai).ToList();
+                var indexSiter = allSiteConfig.IndexOf(allSiteConfig.Where(item => item.Id == siteConfig.Id).FirstOrDefault());
                 if (indexSiter != -1 && indexSiter != allSiteConfig.Count())
                 {
-                    await NextCategory(allSiteConfig[indexSiter++].CategorySetting.CategoryModels.FirstOrDefault());
+                    await NextCategory(allSiteConfig[indexSiter + 1].CategorySetting.CategoryModels.FirstOrDefault());
                     Helper.Display("Next Site", MessageType.Information);
                 }
             }
             else
             {
-                await JobCategoryData(siteConfig.CategorySetting.CategoryModels[categoryIndex++], siteConfig);
+                await JobCategoryData(siteConfig.CategorySetting.CategoryModels[categoryIndex + 1], siteConfig);
             }
         }
 
@@ -150,6 +156,7 @@ namespace DotnetCrawler.Core
             categoryDb.UrlCategoryPagingLatest = categoryUrl;
             await _categoryDbRepository.ReplaceOneAsync(categoryDb);
 
+            var isRunNextCategory = false;
             for (int i = 0; i < postUrlModels.Count(); i++)
             {
                 var postUrlModel = postUrlModels.ToList()[i];
@@ -160,7 +167,7 @@ namespace DotnetCrawler.Core
                         );
 
                 // check completed then continue
-                if (postDb.IsCrawleDone)
+                if (postDb != null && postDb.IsCrawleDone)
                 {
                     Helper.Display("Post Skip Because Crawle Completed", MessageType.Information);
                     continue;
@@ -172,7 +179,7 @@ namespace DotnetCrawler.Core
                 }
 
                 var index = (pageCategoryNumber - 1) * request.CategorySetting.AmountPostInCategory + (i + 1);
-                var isPostEnd = request.CategorySetting.AmountPostInCategory == (postUrlModels.Count() - 1);
+                isRunNextCategory = i == (postUrlModels.Count() - 1);
                 _rabitMQProducer.SendMessage<PostMessage>(QueueName.QueueCrawlePost, new PostMessage()
                 {
                     SiteConfigDb = request,
@@ -180,8 +187,19 @@ namespace DotnetCrawler.Core
                     LinkPostCrawle = postUrlModel,
                     IsDuplicate = isDuplicatePost,
                     Index = index,
-                    IsPostEnd = isPostEnd
+                    IsNextCategory = i == (postUrlModels.Count() - 1)
                 });
+            }
+
+            if (!isRunNextCategory)
+            {
+                NextJobPostDetail(new PostDetailMessage
+                {
+                    CategorySlug = categoryDb.Slug,
+                    IsNextCategory = true
+                },
+                request,
+                isNextPost: false);
             }
         }
 
@@ -232,7 +250,8 @@ namespace DotnetCrawler.Core
                     SiteConfigDb = request,
                     PostDb = post,
                     UrlPostCrawleNext = linkPostCrawle.Url,
-                    CategorySlug = postMessage.CategorySlug
+                    CategorySlug = postMessage.CategorySlug,
+                    IsNextCategory = postMessage.IsNextCategory
                 });
             }
         }
@@ -299,7 +318,8 @@ namespace DotnetCrawler.Core
                     SiteConfigDb = request,
                     PostDb = postDetailMessage.PostDb,
                     UrlPostCrawleNext = postDetailMessage.PostDb.UrlPostPagingCrawleNext,
-                    IsNextCategory = postDetailMessage.IsNextCategory
+                    IsNextCategory = postDetailMessage.IsNextCategory,
+                    CategorySlug = postDetailMessage.CategorySlug
                 },
                 request,
                 isNextPost: chapUrlModels.Count() == request.PostSetting.AmountChapInPost && !string.IsNullOrEmpty(postUrlNext)

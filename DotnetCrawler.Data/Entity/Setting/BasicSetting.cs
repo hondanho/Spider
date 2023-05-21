@@ -6,7 +6,6 @@ namespace DotnetCrawler.Data.Entity.Setting
 
     public class BasicSetting
     {
-        public string Name { get; set; }
         public bool CheckDuplicateSlugPost { get; set; }
         public bool CheckDuplicateTitlePost { get; set; }
         public bool CheckDuplicateSlugChap { get; set; }

@@ -4,11 +4,8 @@ using DotnetCrawler.Data.Entity;
 using DotnetCrawler.Data.Entity.Setting;
 using DotnetCrawler.Data.Repository;
 using Hangfire;
-using Microsoft.Extensions.Configuration;
 using MongoDB.Driver;
-using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
 

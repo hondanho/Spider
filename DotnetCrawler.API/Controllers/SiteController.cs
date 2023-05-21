@@ -1,12 +1,13 @@
 ﻿using DotnetCrawler.API.Service;
 using DotnetCrawler.Base.Extension;
 using DotnetCrawler.Data.Entity;
+using DotnetCrawler.Data.Entity.Setting;
 using DotnetCrawler.Data.Repository;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.Internal;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using WordPressPCL.Models;
 
 namespace DotnetCrawler.Api.Controllers
 {
@@ -21,7 +22,8 @@ namespace DotnetCrawler.Api.Controllers
         public SiteController(
             IMongoRepository<SiteConfigDb> siteConfigDbRepository,
             IMongoRepository<CategoryDb> categoryDbRepository,
-            ICrawlerService crawlerService) {
+            ICrawlerService crawlerService)
+        {
             _categoryDbRepository = categoryDbRepository;
             _siteConfigDbRepository = siteConfigDbRepository;
             _crawlerService = crawlerService;
@@ -37,16 +39,29 @@ namespace DotnetCrawler.Api.Controllers
         [RequestSizeLimit(2147483648)] // e.g. 2 GB request limit
         public async Task CreateSite([FromBody] SiteConfigDb siteConfigDb)
         {
-            var listCategoryDbs = _categoryDbRepository.AsQueryable().ToList();
             if (siteConfigDb != null && siteConfigDb.CategorySetting != null &&
-                siteConfigDb.CategorySetting.CategoryModels != null &&
-                siteConfigDb.CategorySetting.CategoryModels.Any()) {
-                siteConfigDb.CategorySetting.CategoryModels = siteConfigDb.CategorySetting.CategoryModels.Where(item =>
-                    !string.IsNullOrEmpty(item.Slug) &&
-                    !string.IsNullOrEmpty(item.Titlte) &&
-                    !string.IsNullOrEmpty(item.Url) &&
-                    listCategoryDbs.Any(ctgDbs => ctgDbs.Slug == item.Slug && ctgDbs.Url == item.Url)
-                ).ToList();
+            siteConfigDb.CategorySetting.CategoryModels != null &&
+            siteConfigDb.CategorySetting.CategoryModels.Any())
+            {
+                var newCategoryModels = new List<CategoryModel>();
+                var listCategoryDbs = _categoryDbRepository.AsQueryable().ToList();
+                foreach (var categoryModel in siteConfigDb.CategorySetting.CategoryModels)
+                {
+                    if (!string.IsNullOrEmpty(categoryModel.Slug) &&
+                        !string.IsNullOrEmpty(categoryModel.Titlte) &&
+                        !string.IsNullOrEmpty(categoryModel.Url))
+                    {
+                        categoryModel.Slug = Helper.CleanSlug(categoryModel.Slug);
+                        if ((listCategoryDbs.Any() && !listCategoryDbs.Any(item => item.Slug == categoryModel.Slug)) ||
+                            !listCategoryDbs.Any())
+                        {
+                            newCategoryModels.Add(categoryModel);
+                        }
+                    }
+                }
+                
+
+                _siteConfigDbRepository.SetCollectionSave(siteConfigDb.BasicSetting.Document);
                 await _siteConfigDbRepository.InsertOneAsync(siteConfigDb);
             }
         }

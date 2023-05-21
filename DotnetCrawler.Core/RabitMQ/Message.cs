@@ -20,7 +20,7 @@ namespace DotnetCrawler.Core.RabitMQ
         public bool IsDuplicate { get; set; }
         public SiteConfigDb SiteConfigDb { get; set; }
         public int Index { get; set; }
-        public bool IsPostEnd { get; set; }
+        public bool IsNextCategory { get; set; }
         public string CategorySlug { get; set; }
     }
 
