@@ -17,7 +17,6 @@ namespace DotnetCrawler.Core.RabitMQ
     public class PostMessage
     {
         public LinkModel LinkPostCrawle { get; set; }
-        public bool IsDuplicate { get; set; }
         public SiteConfigDb SiteConfigDb { get; set; }
         public int Index { get; set; }
         public bool IsNextCategory { get; set; }

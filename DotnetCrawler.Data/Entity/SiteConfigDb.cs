@@ -10,6 +10,5 @@ namespace DotnetCrawler.Data.Entity
         public CategorySetting CategorySetting { get; set; }
         public ChapSetting ChapSetting { get; set; }
         public PostSetting PostSetting { get; set; }
-        public SystemStatus SystemStatus { get; set; }
     }
 }

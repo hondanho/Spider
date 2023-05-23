@@ -185,7 +185,6 @@ namespace DotnetCrawler.Core
                     SiteConfigDb = request,
                     CategorySlug = categoryDb.Slug,
                     LinkPostCrawle = postUrlModel,
-                    IsDuplicate = isDuplicatePost,
                     Index = index,
                     IsNextCategory = i == (postUrlModels.Count() - 1)
                 });
@@ -211,19 +210,12 @@ namespace DotnetCrawler.Core
             var request = postMessage.SiteConfigDb;
             var categorySlug = postMessage.CategorySlug;
             var linkPostCrawle = postMessage.LinkPostCrawle;
-            var isDuplicate = postMessage.IsDuplicate;
             var index = postMessage.Index;
 
             _postDbRepository.SetCollectionSave(request.BasicSetting.Document);
             _chapDbRepository.SetCollectionSave(request.BasicSetting.Document);
             _categoryDbRepository.SetCollectionSave(request.BasicSetting.Document);
-
-            if (!request.PostSetting.IsHasChapter && isDuplicate)
-            {
-                Helper.Display(string.Format("POST EXIST: Title: {0}, Slug: {1}, Date: {2}", linkPostCrawle.Titlte, linkPostCrawle.Slug, DateTime.Now), MessageType.Information);
-                return;
-            }
-
+           
             var htmlDocumentPost = await DotnetCrawlerDownloader.Download(
                     linkPostCrawle.Url,
                     request.BasicSetting.Proxys,
@@ -231,15 +223,23 @@ namespace DotnetCrawler.Core
                     DotnetCrawlerDownloaderType.FromMemory
                 );
             var post = await CrawlerProcessor.PostProcess(request, categorySlug, linkPostCrawle.Url, index, htmlDocumentPost, request.BasicSetting.Document);
-
-            if (!isDuplicate)
-            {
+            var postDbExist = _postDbRepository.AsQueryable().FirstOrDefault(pdb =>
+                            (request.BasicSetting.CheckDuplicateSlugPost ? pdb.Slug == post.Slug : true) &&
+                            (request.BasicSetting.CheckDuplicateTitlePost ? pdb.Titlte == post.Titlte : true)
+                        );
+            if (postDbExist != null) {
+                var isDuplicatePost = IsDuplicatePost(request, new List<PostDb> { postDbExist }, new LinkModel {
+                    Slug = post.Slug,
+                    Titlte = post.Titlte,
+                    Url = post.Url
+                });
+                if(!request.PostSetting.IsHasChapter && isDuplicatePost) {
+                    Helper.Display(string.Format("POST EXIST: Title: {0}, Slug: {1}, Date: {2}", linkPostCrawle.Titlte, linkPostCrawle.Slug, DateTime.Now), MessageType.Information);
+                    return;
+                }
+            } else {
                 await _postDbRepository.InsertOneAsync(post);
                 Helper.Display(string.Format("POST NEW: Id: {0}, Index: {1}, Title: {2}, Slug: {3}, Date: {4}", post.Id, post.Index, post.Titlte, post.Slug, DateTime.Now), MessageType.Information);
-            }
-            else
-            {
-                Helper.Display(string.Format("POST EXIST: Title: {0}, Slug: {1}, Date: {2}", linkPostCrawle.Titlte, linkPostCrawle.Slug, DateTime.Now), MessageType.Information);
             }
 
             // get info chap
@@ -285,8 +285,8 @@ namespace DotnetCrawler.Core
                 pagePostNumber = Helper.GetPageNumberFromRegex(postUrl, request.PostSetting.PagingNumberRegex);
             }
 
-            var chapDbServers = _chapDbRepository.FilterBy(pdb =>
-                    chapUrlModels.Any(lp => lp.Slug == pdb.Slug || lp.Titlte == pdb.Titlte)
+            var chapDbServers = _chapDbRepository.FilterBy(cdb =>
+                    chapUrlModels.Any(lp => lp.Slug == cdb.Slug || lp.Titlte == cdb.Titlte)
                 ).ToList();
 
             for (int i = 0; i < chapUrlModels.Count(); i++)
@@ -369,7 +369,7 @@ namespace DotnetCrawler.Core
 
         private bool IsDuplicatePost(SiteConfigDb request, IEnumerable<PostDb> postServers, LinkModel linkPost)
         {
-            if (request.BasicSetting.CheckDuplicateTitlePost || request.BasicSetting.CheckDuplicateSlugPost || postServers.Any())
+            if ((request.BasicSetting.CheckDuplicateTitlePost || request.BasicSetting.CheckDuplicateSlugPost) && postServers.Any())
             {
                 var postExist = postServers.FirstOrDefault(pdb =>
                                             (request.BasicSetting.CheckDuplicateSlugPost ? pdb.Slug.Trim().ToLower() == linkPost.Slug.Trim().ToLower() : true) &&
@@ -383,11 +383,11 @@ namespace DotnetCrawler.Core
 
         private bool IsDuplicateChap(SiteConfigDb request, IEnumerable<ChapDb> chapServers, LinkModel linkChap)
         {
-            if (request.BasicSetting.CheckDuplicateSlugChap || request.BasicSetting.CheckDuplicateTitleChap || chapServers.Any())
+            if ((request.BasicSetting.CheckDuplicateSlugChap || request.BasicSetting.CheckDuplicateTitleChap) && chapServers.Any())
             {
-                var chapExist = chapServers.FirstOrDefault(pdb =>
-                                            (request.BasicSetting.CheckDuplicateSlugChap ? pdb.Slug == linkChap.Slug : true) &&
-                                            (request.BasicSetting.CheckDuplicateTitleChap ? pdb.Titlte.ToLower() == linkChap.Titlte.ToLower() : true)
+                var chapExist = chapServers.FirstOrDefault(cdb =>
+                                            (request.BasicSetting.CheckDuplicateSlugChap ? cdb.Slug.Trim().ToLower() == linkChap.Slug.Trim().ToLower() : true) &&
+                                            (request.BasicSetting.CheckDuplicateTitleChap ? cdb.Titlte.ToLower() == linkChap.Titlte.ToLower() : true)
                                         );
                 return chapExist != null;
             }
