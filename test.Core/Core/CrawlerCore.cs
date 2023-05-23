@@ -9,6 +9,7 @@ using DotnetCrawler.Data.Repository;
 using DotnetCrawler.Downloader;
 using DotnetCrawler.Processor;
 using Microsoft.EntityFrameworkCore.Internal;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,6 +24,7 @@ namespace DotnetCrawler.Core
         private readonly IMongoRepository<ChapDb> _chapDbRepository;
         private readonly IMongoRepository<CategoryDb> _categoryDbRepository;
         private readonly IMongoRepository<SiteConfigDb> _siteConfigDbRepository;
+        private string databaseName;
 
         private readonly IRabitMQProducer _rabitMQProducer;
 
@@ -31,6 +33,7 @@ namespace DotnetCrawler.Core
             IMongoRepository<PostDb> postDbRepository,
             IMongoRepository<ChapDb> chapDbRepository,
             IMongoRepository<SiteConfigDb> siteConfigDbRepository,
+            IConfiguration configuration,
             IMongoRepository<CategoryDb> categoryDbRepository)
         {
             _postDbRepository = postDbRepository;
@@ -38,6 +41,7 @@ namespace DotnetCrawler.Core
             _categoryDbRepository = categoryDbRepository;
             _rabitMQProducer = rabitMQProducer;
             _siteConfigDbRepository = siteConfigDbRepository;
+            databaseName = configuration.GetValue<string>("Setting:DatabaseName");
         }
 
         /// <summary>
@@ -45,10 +49,10 @@ namespace DotnetCrawler.Core
         /// </summary>
         public async Task NextCategory(CategoryModel category = null)
         {
-            _siteConfigDbRepository.SetCollectionSave("novelfull");
-            _postDbRepository.SetCollectionSave("novelfull");
-            _chapDbRepository.SetCollectionSave("novelfull");
-            _categoryDbRepository.SetCollectionSave("novelfull");
+            _siteConfigDbRepository.SetCollectionSave(databaseName);
+            _postDbRepository.SetCollectionSave(databaseName);
+            _chapDbRepository.SetCollectionSave(databaseName);
+            _categoryDbRepository.SetCollectionSave(databaseName);
 
             if (category == null)
             {

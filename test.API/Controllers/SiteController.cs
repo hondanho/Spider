@@ -5,6 +5,7 @@ using DotnetCrawler.Data.Entity.Setting;
 using DotnetCrawler.Data.Repository;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.Internal;
+using Microsoft.Extensions.Configuration;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -18,15 +19,21 @@ namespace DotnetCrawler.Api.Controllers
         private readonly ICrawlerService _crawlerService;
         private readonly IMongoRepository<CategoryDb> _categoryDbRepository;
         private readonly IMongoRepository<SiteConfigDb> _siteConfigDbRepository;
+        private string databaseName;
 
         public SiteController(
             IMongoRepository<SiteConfigDb> siteConfigDbRepository,
+            IConfiguration configuration,
             IMongoRepository<CategoryDb> categoryDbRepository,
             ICrawlerService crawlerService)
         {
             _categoryDbRepository = categoryDbRepository;
             _siteConfigDbRepository = siteConfigDbRepository;
             _crawlerService = crawlerService;
+            databaseName = configuration.GetValue<string>("Setting:DatabaseName");
+
+            _siteConfigDbRepository.SetCollectionSave(databaseName);
+            _categoryDbRepository.SetCollectionSave(databaseName);
         }
 
         [HttpGet("{id}")]
@@ -37,7 +44,7 @@ namespace DotnetCrawler.Api.Controllers
 
         [HttpPost]
         [RequestSizeLimit(2147483648)] // e.g. 2 GB request limit
-        public async Task CreateSite([FromBody] SiteConfigDb siteConfigDb)
+        public async Task<string> CreateSite([FromBody] SiteConfigDb siteConfigDb)
         {
             if (siteConfigDb != null && siteConfigDb.CategorySetting != null &&
             siteConfigDb.CategorySetting.CategoryModels != null &&
@@ -60,10 +67,17 @@ namespace DotnetCrawler.Api.Controllers
                     }
                 }
                 
+                if (newCategoryModels.Any()) {
+                    siteConfigDb.CategorySetting.CategoryModels = newCategoryModels;
 
-                _siteConfigDbRepository.SetCollectionSave(siteConfigDb.BasicSetting.Document);
-                await _siteConfigDbRepository.InsertOneAsync(siteConfigDb);
+                    _siteConfigDbRepository.SetCollectionSave(siteConfigDb.BasicSetting.Document);
+                    await _siteConfigDbRepository.InsertOneAsync(siteConfigDb);
+
+                    return "site inserted";
+                }
             }
+
+            return "nothing site insert";
         }
 
         [HttpPut]

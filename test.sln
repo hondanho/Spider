@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.3.32922.545
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "test.Data", "DotnetCrawler.Data\test.Data.csproj", "{DC7E573A-6BC6-4E1F-9CF5-4D0C93B4864C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "test.Data", "test.Data\test.Data.csproj", "{DC7E573A-6BC6-4E1F-9CF5-4D0C93B4864C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "test.Core", "DotnetCrawler.Core\test.Core.csproj", "{022684CF-07C9-40B9-905F-3723AD316C9E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "test.Core", "test.Core\test.Core.csproj", "{022684CF-07C9-40B9-905F-3723AD316C9E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "test.API", "DotnetCrawler.API\test.API.csproj", "{6300785D-A334-4A21-8735-A97848766891}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "test.API", "test.API\test.API.csproj", "{6300785D-A334-4A21-8735-A97848766891}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

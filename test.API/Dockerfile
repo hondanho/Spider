@@ -10,18 +10,18 @@ EXPOSE 443
 
 FROM mcr.microsoft.com/dotnet/sdk:3.1 AS build
 WORKDIR /src
-COPY ["DotnetCrawler.API/DotnetCrawler.API.csproj", "DotnetCrawler.API/"]
-COPY ["DotnetCrawler.Core/DotnetCrawler.Core.csproj", "DotnetCrawler.Core/"]
-COPY ["DotnetCrawler.Data/DotnetCrawler.Data.csproj", "DotnetCrawler.Data/"]
-RUN dotnet restore "DotnetCrawler.API/DotnetCrawler.API.csproj"
+COPY ["test.API/test.API.csproj", "test.API/"]
+COPY ["test.Core/test.Core.csproj", "test.Core/"]
+COPY ["test.Data/test.Data.csproj", "test.Data/"]
+RUN dotnet restore "test.API/test.API.csproj"
 COPY . .
-WORKDIR "/src/DotnetCrawler.API"
-RUN dotnet build "DotnetCrawler.API.csproj" -c Release -o /app/build
+WORKDIR "/src/test.API"
+RUN dotnet build "test.API.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "DotnetCrawler.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "test.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "DotnetCrawler.API.dll"]
+ENTRYPOINT ["dotnet", "test.API.dll"]

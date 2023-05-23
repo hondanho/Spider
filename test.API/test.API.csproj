@@ -14,8 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DotnetCrawler.Core\test.Core.csproj" />
-    <ProjectReference Include="..\DotnetCrawler.Data\test.Data.csproj" />
+    <ProjectReference Include="..\test.Core\test.Core.csproj" />
+    <ProjectReference Include="..\test.Data\test.Data.csproj" />
   </ItemGroup>
 
 
