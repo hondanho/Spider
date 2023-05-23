@@ -1,4 +1,5 @@
-﻿using DotnetCrawler.Base.Extension;
+﻿using Amazon.Runtime.Internal;
+using DotnetCrawler.Base.Extension;
 using DotnetCrawler.Core.Extension;
 using DotnetCrawler.Core.RabitMQ;
 using DotnetCrawler.Data.Constants;
@@ -14,6 +15,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using WordPressPCL.Models;
 using PostStatus = DotnetCrawler.Data.Constants.PostStatus;
 
 namespace DotnetCrawler.Core
@@ -164,7 +166,6 @@ namespace DotnetCrawler.Core
             for (int i = 0; i < postUrlModels.Count(); i++)
             {
                 var postUrlModel = postUrlModels.ToList()[i];
-                var isDuplicatePost = IsDuplicatePost(request, postDbServers, postUrlModel);
                 var postDb = postDbServers.FirstOrDefault(pdb =>
                             (request.BasicSetting.CheckDuplicateSlugPost ? pdb.Slug == postUrlModel.Slug : true) &&
                             (request.BasicSetting.CheckDuplicateTitlePost ? pdb.Titlte == postUrlModel.Titlte : true)
@@ -304,7 +305,7 @@ namespace DotnetCrawler.Core
                 }
 
                 var index = (pagePostNumber - 1) * request.PostSetting.AmountChapInPost + (i + 1);
-                await JobChapData(request, postSlug, chapUrlModel.Url, index, postDetailMessage.PostDb);
+                await JobChapData(request, postSlug, chapUrlModel.Url, index);
             }
 
             var postUrlNext = (await DotnetCrawlerPageLinkReader.GetLinks(htmlDocumentPost, request.PostSetting.PagingSelector, domain)).FirstOrDefault();
@@ -358,17 +359,37 @@ namespace DotnetCrawler.Core
             }
         }
 
-        public async Task JobChapData(SiteConfigDb siteConfigDb, string slugPost, string urlChap, int index, PostDb postDb)
+        public async Task JobChapData(SiteConfigDb request, string slugPost, string urlChap, int index)
         {
             var htmlDocumentChap = await DotnetCrawlerDownloader.Download(
                     urlChap,
-                    siteConfigDb.BasicSetting.Proxys,
-                    siteConfigDb.BasicSetting.UserAgent,
+                    request.BasicSetting.Proxys,
+                    request.BasicSetting.UserAgent,
                     DotnetCrawlerDownloaderType.FromMemory
                 );
-            var chap = await CrawlerProcessor.ChapProcess(siteConfigDb, slugPost, urlChap, index, htmlDocumentChap);
-            await _chapDbRepository.InsertOneAsync(chap);
-            Helper.Display(string.Format("CHAP NEW: Id: {0}, Index: {1}, Title: {2}, Slug: {3}", chap.Id, chap.Index, chap.Titlte, chap.Slug), MessageType.Information);
+            var chap = await CrawlerProcessor.ChapProcess(request, slugPost, urlChap, index, htmlDocumentChap);
+            var chapExist = _chapDbRepository.AsQueryable().FirstOrDefault(cdb =>
+                (request.BasicSetting.CheckDuplicateSlugPost ? cdb.Slug == chap.Slug : true) &&
+                (request.BasicSetting.CheckDuplicateTitlePost ? cdb.Titlte == chap.Titlte : true)
+            );
+            if (chapExist != null)
+            {
+                var isDuplicateChap = IsDuplicateChap(request, new List<ChapDb> { chapExist }, new LinkModel
+                {
+                    Slug = chap.Slug,
+                    Titlte = chap.Titlte
+                });
+                if (isDuplicateChap)
+                {
+                    Helper.Display(string.Format("CHAP EXIST: Title: {0}, Slug: {1}", chap.Titlte, chap.Slug), MessageType.Information);
+                    return;
+                }
+            }
+            else
+            {
+                await _chapDbRepository.InsertOneAsync(chap);
+                Helper.Display(string.Format("CHAP NEW: Id: {0}, Index: {1}, Title: {2}, Slug: {3}", chap.Id, chap.Index, chap.Titlte, chap.Slug), MessageType.Information);
+            }
         }
 
         private bool IsDuplicatePost(SiteConfigDb request, IEnumerable<PostDb> postServers, LinkModel linkPost)
