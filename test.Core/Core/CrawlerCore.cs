@@ -197,7 +197,7 @@ namespace DotnetCrawler.Core
 
             if (!isRunNextCategory)
             {
-                NextJobPostDetail(new PostDetailMessage
+                await NextJobPostDetail(new PostDetailMessage
                 {
                     CategorySlug = categoryDb.Slug,
                     IsNextCategory = true
@@ -217,9 +217,9 @@ namespace DotnetCrawler.Core
             var linkPostCrawle = postMessage.LinkPostCrawle;
             var index = postMessage.Index;
 
-            _postDbRepository.SetCollectionSave(request.BasicSetting.Document);
-            _chapDbRepository.SetCollectionSave(request.BasicSetting.Document);
-            _categoryDbRepository.SetCollectionSave(request.BasicSetting.Document);
+            _postDbRepository.SetCollectionSave(databaseName);
+            _chapDbRepository.SetCollectionSave(databaseName);
+            _categoryDbRepository.SetCollectionSave(databaseName);
            
             var htmlDocumentPost = await DotnetCrawlerDownloader.Download(
                     linkPostCrawle.Url,
@@ -250,10 +250,10 @@ namespace DotnetCrawler.Core
             // get info chap
             if (request.PostSetting.IsHasChapter)
             {
-                await JobPostDetail(new PostDetailMessage()
+                _rabitMQProducer.SendMessage<PostDetailMessage>(QueueName.QueueCrawlePostDetail, new PostDetailMessage()
                 {
                     SiteConfigDb = request,
-                    PostDb = post,
+                    PostDbSlug = post.Slug,
                     UrlPostCrawleNext = linkPostCrawle.Url,
                     CategorySlug = postMessage.CategorySlug,
                     IsNextCategory = postMessage.IsNextCategory
@@ -266,10 +266,13 @@ namespace DotnetCrawler.Core
         /// </summary>
         public async Task JobPostDetail(PostDetailMessage postDetailMessage)
         {
-            var request = postDetailMessage.SiteConfigDb;
+            _postDbRepository.SetCollectionSave(databaseName);
+            _chapDbRepository.SetCollectionSave(databaseName);
+            _categoryDbRepository.SetCollectionSave(databaseName);
 
+            var request = postDetailMessage.SiteConfigDb;
             var postUrl = postDetailMessage.UrlPostCrawleNext;
-            var postSlug = postDetailMessage.PostDb.Slug;
+            var postSlug = postDetailMessage.PostDbSlug;
             var domain = postDetailMessage.SiteConfigDb.BasicSetting.Domain;
 
             var htmlDocumentPost = await DotnetCrawlerDownloader.Download(
@@ -309,25 +312,26 @@ namespace DotnetCrawler.Core
             }
 
             var postUrlNext = (await DotnetCrawlerPageLinkReader.GetLinks(htmlDocumentPost, request.PostSetting.PagingSelector, domain)).FirstOrDefault();
-            postDetailMessage.PostDb.UrlPostPagingCrawleNext = postUrlNext;
-            postDetailMessage.PostDb.UrlPostPagingCrawleLatest = postUrl;
-            postDetailMessage.PostDb.IsCrawleDone = (postDetailMessage.PostDb.Status == PostStatus.Completed &&
-                                                    chapUrlModels.Count() < request.PostSetting.AmountChapInPost
-                                                ) ? true : false;
-            await _postDbRepository.ReplaceOneAsync(postDetailMessage.PostDb);
+            if (string.IsNullOrEmpty(postUrlNext))
+            {
+                var postDb = _postDbRepository.FilterBy(item => item.Slug == postSlug).FirstOrDefault();
+                postDb.UrlPostPagingCrawleLatest = postUrl;
+                postDb.IsCrawleDone = postDb.Status == PostStatus.Completed ? true : false;
+                await _postDbRepository.ReplaceOneAsync(postDb);
+            }
 
             // next post
             await NextJobPostDetail(
                 new PostDetailMessage()
                 {
                     SiteConfigDb = request,
-                    PostDb = postDetailMessage.PostDb,
-                    UrlPostCrawleNext = postDetailMessage.PostDb.UrlPostPagingCrawleNext,
+                    PostDbSlug = postDetailMessage.PostDbSlug,
+                    UrlPostCrawleNext = postUrlNext,
                     IsNextCategory = postDetailMessage.IsNextCategory,
                     CategorySlug = postDetailMessage.CategorySlug
                 },
                 request,
-                isNextPost: chapUrlModels.Count() == request.PostSetting.AmountChapInPost && !string.IsNullOrEmpty(postUrlNext)
+                isNextPost: !string.IsNullOrEmpty(postUrlNext)
                 );
         }
 
@@ -339,7 +343,8 @@ namespace DotnetCrawler.Core
         {
             if (isNextPost)
             {
-                await JobPostDetail(postDetailMessage);
+                _rabitMQProducer.SendMessage<PostDetailMessage>(QueueName.QueueCrawlePostDetail, postDetailMessage);
+                return;
             }
             else if (postDetailMessage.IsNextCategory)
             {

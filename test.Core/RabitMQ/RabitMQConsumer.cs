@@ -45,12 +45,19 @@ namespace DotnetCrawler.Core.RabitMQ
                 exclusive: false,
                 autoDelete: false
             );
+
+            _modelChannel.QueueDeclare(
+                QueueName.QueueCrawlePostDetail,
+                durable: false,
+                exclusive: false,
+                autoDelete: false
+            );
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            var consumer = new EventingBasicConsumer(_modelChannel);
-            consumer.Received += (model, ea) =>
+            var consumerPost = new EventingBasicConsumer(_modelChannel);
+            consumerPost.Received += (model, ea) =>
             {
                 var body = ea.Body.ToArray();
                 var bodyString = Encoding.UTF8.GetString(body);
@@ -62,7 +69,22 @@ namespace DotnetCrawler.Core.RabitMQ
                     Helper.Display("Received Post", Extension.MessageType.SystemInfo);
                 }
             };
-            _modelChannel.BasicConsume(queue: QueueName.QueueCrawlePost, autoAck: true, consumer: consumer);
+            _modelChannel.BasicConsume(queue: QueueName.QueueCrawlePost, autoAck: true, consumer: consumerPost);
+
+            var consumerPostDetail = new EventingBasicConsumer(_modelChannel);
+            consumerPostDetail.Received += (model, ea) =>
+            {
+                var body = ea.Body.ToArray();
+                var bodyString = Encoding.UTF8.GetString(body);
+
+                if (!string.IsNullOrEmpty(bodyString))
+                {
+                    var message = JsonSerializer.Deserialize<PostDetailMessage>(bodyString);
+                    BackgroundJob.Enqueue(() => _crawlerCore.JobPostDetail(message));
+                    Helper.Display("Received Post Detail", Extension.MessageType.SystemInfo);
+                }
+            };
+            _modelChannel.BasicConsume(queue: QueueName.QueueCrawlePostDetail, autoAck: true, consumer: consumerPostDetail);
 
             return Task.CompletedTask;
         }

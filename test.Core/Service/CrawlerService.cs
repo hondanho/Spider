@@ -46,7 +46,6 @@ namespace DotnetCrawler.API.Service
                 ).ToList() ?? new List<PostDb>();
                 foreach(var posdtDb in postDbServers) {
                     posdtDb.UrlPostPagingCrawleLatest = string.Empty;
-                    posdtDb.UrlPostPagingCrawleNext = posdtDb.Url;
                     _postDbRepository.ReplaceOne(posdtDb);
                 }
             }

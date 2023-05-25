@@ -25,7 +25,7 @@ namespace DotnetCrawler.Core.RabitMQ
 
     public class PostDetailMessage
     {
-        public PostDb PostDb { get; set; }
+        public string PostDbSlug { get; set; }
         public string UrlPostCrawleNext { get; set; }
         public string CategorySlug { get; set; }
         public CategoryModel CategoryModel { get; set; }
