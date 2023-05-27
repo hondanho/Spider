@@ -10,6 +10,7 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using MongoDB.Driver.Core.Configuration;
 using DotnetCrawler.Data.Entity;
+using DotnetCrawler.Data.Model;
 
 namespace DotnetCrawler.Data.Repository
 {
@@ -41,6 +42,39 @@ namespace DotnetCrawler.Data.Repository
         public virtual IQueryable<TDocument> AsQueryable()
         {
             return _collection.AsQueryable();
+        }
+
+        public List<DuplicateRecord> CountSlug()
+        {
+            var result = new List<DuplicateRecord>();
+            var allCategory = _collection.AsQueryable().ToList();
+            var groupStage = new BsonDocument
+            {
+                { "$group", new BsonDocument { { "_id", "$Slug" }, { "count", new BsonDocument("$sum", 1) } } }
+            };
+
+                        var matchStage = new BsonDocument
+            {
+                { "$match", new BsonDocument { { "count", new BsonDocument("$gt", 1) } } }
+            };
+
+            var pipeline = new[] { groupStage, matchStage };
+
+            var dataDuplicate = _collection.Aggregate<BsonDocument>(pipeline).ToList();
+
+            foreach (var document  in dataDuplicate)
+            {
+                var fieldValue = document["_id"];
+                var count = document["count"];
+
+                Console.WriteLine($"Field Value: {fieldValue}, Count: {count}");
+                result.Add(new DuplicateRecord {
+                    Slug =fieldValue?.ToString(), 
+                    Count = (int)count
+                });
+            }
+
+            return result;
         }
 
         public virtual IEnumerable<TDocument> FilterBy(

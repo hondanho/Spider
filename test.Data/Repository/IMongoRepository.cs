@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using MongoDB.Driver;
 using DotnetCrawler.Data.Entity;
+using DotnetCrawler.Data.Model;
 
 namespace DotnetCrawler.Data.Repository
 {
@@ -27,6 +28,7 @@ namespace DotnetCrawler.Data.Repository
         Task<TDocument> FindOneAsync(Expression<Func<TDocument, bool>> filterExpression);
 
         TDocument FindById(string id);
+        List<DuplicateRecord> CountSlug();
 
         Task<TDocument> FindByIdAsync(string id);
 

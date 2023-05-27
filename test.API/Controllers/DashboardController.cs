@@ -1,12 +1,10 @@
-﻿using DotnetCrawler.API.Service;
-using DotnetCrawler.Data.Entity;
+﻿using DotnetCrawler.Data.Entity;
 using DotnetCrawler.Data.Model;
 using DotnetCrawler.Data.Repository;
 using DotnetCrawler.Data.Utils;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using MongoDB.Driver;
-using Remotion.Linq.Clauses.ResultOperators;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,62 +18,50 @@ namespace DotnetCrawler.Api.Controllers
         private readonly IMongoRepository<CategoryDb> _categoryDbRepository;
         private readonly IMongoRepository<ChapDb> _chapDbRepository;
         private readonly IMongoRepository<PostDb> _postDbRepository;
+        private string databaseName;
 
         public DashboardController(
-            ILogger<SiteController> logger,
             IMongoRepository<CategoryDb> categoryDbRepository,
-            IMongoRepository<SiteConfigDb> siteConfigDbRepository,
+            IConfiguration configuration,
             IMongoRepository<PostDb> postDbRepository,
-            IMongoRepository<ChapDb> chapDbRepository,
-            ICrawlerService crawlerService) {
+            IMongoRepository<ChapDb> chapDbRepository
+        ) {
             _categoryDbRepository = categoryDbRepository;
             _postDbRepository = postDbRepository;
             _chapDbRepository = chapDbRepository;
+            databaseName = configuration.GetValue<string>("Setting:DatabaseName");
+
+            _categoryDbRepository.SetCollectionSave(databaseName);
+            _postDbRepository.SetCollectionSave(databaseName);
+            _chapDbRepository.SetCollectionSave(databaseName);
         }
 
         [HttpGet("validate")]
         public CheckerDataModel GetDuplicateByPostSlug() {
             var result = new CheckerDataModel();
 
-            var duplicateCategory = _categoryDbRepository.AsQueryable()
-                                .ToList()?.GroupBy(p => p.Slug, p => p.Titlte)
-                               .Where(g => g.Count() > 1)
-                               .Select(g => new DuplicateRecord {
-                                   Slug = g.Key,
-                                   Count = g.Count()
-                               }).ToList();
+            var duplicateCategory = _categoryDbRepository.CountSlug();
             result.CategoryDuplicate = new Duplicate {
                 DuplicateRecords = duplicateCategory,
                 Count = duplicateCategory.Count()
             };
 
-            var duplicatePost = _postDbRepository.AsQueryable()
-                                .ToList()?.GroupBy(p => p.Slug, p => p.CategorySlug)
-                               .Where(g => g.Count() > 1)
-                               .Select(g => new DuplicateRecord {
-                                   Slug = g.Key,
-                                   Count = g.Count()
-                               }).ToList();
-            result.PostDuplicate = new Duplicate {
+            var duplicatePost = _postDbRepository.CountSlug();
+            result.PostDuplicate = new Duplicate
+            {
                 DuplicateRecords = duplicatePost,
-                Count = duplicatePost.Count
+                Count = duplicatePost.Count()
             };
 
-            var duplicateChap = _chapDbRepository.AsQueryable()
-                                .ToList()?.GroupBy(p => p.Slug, p => p.PostSlug)
-                               .Where(g => g.Count() > 1)
-                               .Select(g => new DuplicateRecord {
-                                   Slug = g.Key,
-                                   Count = g.Count()
-                               }).ToList();
-            result.ChapDuplicate = new Duplicate {
+            var duplicateChap = _chapDbRepository.CountSlug();
+            result.ChapDuplicate = new Duplicate
+            {
                 DuplicateRecords = duplicateChap,
                 Count = duplicateChap.Count()
             };
 
             return result;
         }
-
 
         [HttpGet("data-verify")]
         public async Task<List<CategoryInfo>> GetSiteInfos(int pageNumber, int take) {
