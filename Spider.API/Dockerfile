@@ -10,18 +10,18 @@ EXPOSE 443
 
 FROM mcr.microsoft.com/dotnet/sdk:3.1 AS build
 WORKDIR /src
-COPY ["test.API/test.API.csproj", "test.API/"]
-COPY ["test.Core/test.Core.csproj", "test.Core/"]
-COPY ["test.Data/test.Data.csproj", "test.Data/"]
-RUN dotnet restore "test.API/test.API.csproj"
+COPY ["Spider.API/Spider.API.csproj", "Spider.API/"]
+COPY ["Spider.Core/Spider.Core.csproj", "Spider.Core/"]
+COPY ["Spider.Data/Spider.Data.csproj", "Spider.Data/"]
+RUN dotnet restore "Spider.API/Spider.API.csproj"
 COPY . .
-WORKDIR "/src/test.API"
-RUN dotnet build "test.API.csproj" -c Release -o /app/build
+WORKDIR "/src/Spider.API"
+RUN dotnet build "Spider.API.csproj" -c Release -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "test.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "Spider.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "test.API.dll"]
+ENTRYPOINT ["dotnet", "Spider.API.dll"]
